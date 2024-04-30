@@ -3,7 +3,7 @@
 # :b:azy danych :100:
 
 
-**Autorzy:** Mikołaj Durkot:sunglasses:, Jakub Pomorski:sweat_drops:, Dawid Wójtowicz:trollface:
+**Autorzy:** Mikołaj Durkot :sunglasses: , Jakub Pomorski :sweat_drops: , Dawid Wójtowicz :trollface:
 
 --- 
 
