@@ -1,6 +1,6 @@
 
 ---
-# Bazy danych
+# :b:azy danych :100:
 
 
 **Autorzy:** Mikołaj Durkot, Jakub Pomorski, Dawid Wójtowicz
