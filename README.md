@@ -33,7 +33,7 @@ Prośba o realizację prywatnej wycieczki (info o niej mają admin i klient oraz
 # 2.    Baza danych
 
 ### Schemat bazy danych
-balls
+![DIAGRAM](main/diagram.png)
 ### Opis poszczególnych tabel:
 - #### Attractions
 Tabela ta opisuje poszczególne atrakcje dla każdej wycieczki.
