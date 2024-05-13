@@ -145,7 +145,7 @@ CREATE TABLE Attractions (
     TripID int  NOT NULL,
     Name varchar(50)  NOT NULL,
     Address varchar(50)  NOT NULL,
-    MaxSpots int  NOT NULL,
+    Spots int  NOT NULL,
     Price int  NOT NULL,
     CONSTRAINT Attractions_pk PRIMARY KEY  (AttractionID)
 );
