@@ -93,7 +93,7 @@ Tabela opisująca wycieczki znajdujące się w stałej ofercie.
 |         Price           |        int           |         Cena całej wycieczki (nie wliczając atrakcji)                                 |
 
 - #### ReservationDetails
-Opis: 
+- Tabela zawiera informacje wiążace rezerwacje z wykupionymi atrakcjami.
 
 | Nazwa atrybutu | Typ | Opis/Uwagi |
 | -------------- | --- | ---------- |
@@ -102,7 +102,7 @@ Opis:
 | AttendeesNumber | int | Ilość gości przypisanych do danej atrakcji |
 
 - #### Reservation
-- Opis: 
+- Tabela zawiera informacje dotyczące poszczególnych rezerwacji.
 
 | Nazwa atrybutu | Typ | Opis/Uwagi |
 | -------------- | --- | ---------- |
@@ -115,19 +115,19 @@ Opis:
 
 
 - #### PrivateClients
-- Opis: 
+- Tabela zawiera informacje o klientach, którzy są osobami prywatnymi.
 
 | Nazwa atrybutu | Typ | Opis/Uwagi |
 | -------------- | --- | ---------- |
 | CustomerID  |   int  |   ID Klienta    |
-| FirstName    |  varchar(50)  |   ID Wycieczki       |
-| LastName    |  varchar(50)  |   Imię klienta      |
-| Address    |  varchar(50)  |   Nazwisko klienta      |
+| FirstName    |  varchar(50)  |  Imię klienta       |
+| LastName    |  varchar(50)  |   Nazwisko klienta       |
+| Address    |  varchar(50)  |   Adres klienta     |
 | ContactNumber | varchar(15) | Numer telefonu klienta (razem z numerem kierunkowym) |
 
 
 - #### Payments
-- Opis: 
+- Tabela zawiera informacje dotyczące płatności. 
 
 | Nazwa atrybutu | Typ | Opis/Uwagi |
 | -------------- | --- | ---------- |
