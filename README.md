@@ -93,7 +93,7 @@ Tabela opisująca wycieczki znajdujące się w stałej ofercie.
 |         Price           |        int           |         Cena całej wycieczki (nie wliczając atrakcji)                                 |
 
 - #### ReservationDetails
-- Tabela zawiera informacje wiążace rezerwacje z wykupionymi atrakcjami.
+Tabela zawiera informacje wiążace rezerwacje z wykupionymi atrakcjami.
 
 | Nazwa atrybutu | Typ | Opis/Uwagi |
 | -------------- | --- | ---------- |
@@ -102,7 +102,7 @@ Tabela opisująca wycieczki znajdujące się w stałej ofercie.
 | AttendeesNumber | int | Ilość gości przypisanych do danej atrakcji |
 
 - #### Reservation
-- Tabela zawiera informacje dotyczące poszczególnych rezerwacji.
+Tabela zawiera informacje dotyczące poszczególnych rezerwacji.
 
 | Nazwa atrybutu | Typ | Opis/Uwagi |
 | -------------- | --- | ---------- |
@@ -115,7 +115,7 @@ Tabela opisująca wycieczki znajdujące się w stałej ofercie.
 
 
 - #### PrivateClients
-- Tabela zawiera informacje o klientach, którzy są osobami prywatnymi.
+Tabela zawiera informacje o klientach, którzy są osobami prywatnymi.
 
 | Nazwa atrybutu | Typ | Opis/Uwagi |
 | -------------- | --- | ---------- |
@@ -127,7 +127,7 @@ Tabela opisująca wycieczki znajdujące się w stałej ofercie.
 
 
 - #### Payments
-- Tabela zawiera informacje dotyczące płatności. 
+Tabela zawiera informacje dotyczące płatności. 
 
 | Nazwa atrybutu | Typ | Opis/Uwagi |
 | -------------- | --- | ---------- |
