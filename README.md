@@ -204,7 +204,7 @@ CREATE TABLE PrivateClients (
     FirstName varchar(50)  NOT NULL,
     LastName varchar(50)  NOT NULL,
     Address varchar(50)  NOT NULL,
-    ContactNumber int  NOT NULL,
+    ContactNumber varchar(15)  NOT NULL,
     CONSTRAINT PrivateClients_pk PRIMARY KEY  (CustomerID)
 );
 
@@ -224,7 +224,7 @@ CREATE TABLE Reservation (
 CREATE TABLE ReservationDetails (
     AttractionID int  NOT NULL,
     ReservationID int  NOT NULL,
-    AttendeesNumber int  NOT NULL,
+    GuestsNumber int  NOT NULL,
     CONSTRAINT ReservationDetails_pk PRIMARY KEY  (ReservationID,AttractionID)
 );
 
@@ -239,13 +239,13 @@ CREATE TABLE Trips (
 );
 
 -- foreign keys
--- Reference: AttendeesDetails_Attendees (table: GuestDetails)
-ALTER TABLE GuestDetails ADD CONSTRAINT AttendeesDetails_Attendees
+-- Reference: GuestsDetails_Guests (table: GuestDetails)
+ALTER TABLE GuestDetails ADD CONSTRAINT GuestsDetails_Guests
     FOREIGN KEY (GuestID)
     REFERENCES Guests (GuestID);
 
--- Reference: AttendeesDetails_Attractions (table: GuestDetails)
-ALTER TABLE GuestDetails ADD CONSTRAINT AttendeesDetails_Attractions
+-- Reference: GuestsDetails_Attractions (table: GuestDetails)
+ALTER TABLE GuestDetails ADD CONSTRAINT GuestsDetails_Attractions
     FOREIGN KEY (AttractionID)
     REFERENCES Attractions (AttractionID);
 
