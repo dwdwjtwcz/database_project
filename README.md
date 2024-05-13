@@ -40,11 +40,11 @@ Tabela ta opisuje poszczególne atrakcje dla każdej wycieczki.
 
 | Nazwa atrybutu | Typ | Opis/Uwagi |
 | -------------- | --- | ---------- |
-| AttractionID   | int    |  ID atrakcji do identyfikacji          |
-| TripID    |   int  |     ID wycieczki      |
+| AttractionID   | int    |  ID Atrakcji do identyfikacji          |
+| TripID    |   int  |     ID Wycieczki      |
 | Name    |  varchar(50)   |     Nazwa atrakcji       |
 | Address    |  varchar(50)   |  Adres atrakcji (miejsce/region)          |
-| MaxSpots    |   int  |   maks. liczba uczestnikow         |
+| MaxSpots    |   int  |   Maks. liczba uczestnikow         |
 | Price    |  int   |   Cena za pojedynczą atrakcję         |
 - #### Companies
 Tabela ta zawiera dane o firmach, które kupują u nas wycieczki.
@@ -58,28 +58,28 @@ Tabela ta zawiera dane o firmach, które kupują u nas wycieczki.
 Tabela słownikowa zawierająca nazwę kraju dla każdego 3-literowego kodu państwa zgodnie ze standardem ISO 3166-1 alfa-3.
 | Nazwa atrybutu | Typ | Opis/Uwagi |
 | -------------- | --- | ---------- |
-| CountryID | varchar(3) | ID państwa |
-| CountryName | varchar(50) | nazwa państwa |
+| CountryID | varchar(3) | ID Państwa |
+| CountryName | varchar(50) | Nazwa państwa |
 - #### Customers
 Tabela ta zawiera podstawowe informacje o kliencie - jego id i kraj.
 | Nazwa atrybutu | Typ | Opis/Uwagi |
 | -------------- | --- | ---------- |
-| CustomerID | int | ID klienta |
-| CountryID | varchar(3) | ID państwa |
+| CustomerID | int | ID Klienta |
+| CountryID | varchar(3) | ID Państwa |
 - #### GuestDetails
 Tabela ta zawiera pary gość-atrakcja, służące do powiązania poszczególnych gości do poszczególnych atrakcji.
 | Nazwa atrybutu | Typ | Opis/Uwagi |
 | -------------- | --- | ---------- |
-| GuestID | int | ID gościa |
-| AttractionID | int | ID atrakcji |
+| GuestID | int | ID Gościa |
+| AttractionID | int | ID Atrakcji |
 - #### Guests
 Tabela zawiera informacje o uczestnikach wycieczki.
 | Nazwa atrybutu | Typ | Opis/Uwagi |
 | -------------- | --- | ---------- |
-| GuestID | int | ID gościa |
-| ReservationID | int | ID rezerwacji |
-| FirstName | varchar(50) | imię gościa |
-| LastName | varchar(50) | nazwisko gościa |
+| GuestID | int | ID Gościa |
+| ReservationID | int | ID Rezerwacji |
+| FirstName | varchar(50) | Imię gościa |
+| LastName | varchar(50) | Nazwisko gościa |
 
 - #### Trips
 Tabela opisująca wycieczki znajdujące się w stałej ofercie.
