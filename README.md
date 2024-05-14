@@ -46,6 +46,26 @@ Tabela ta opisuje poszczególne atrakcje dla każdej wycieczki.
 | Address    |  varchar(50)   |  Adres atrakcji (miejsce/region)          |
 | MaxSpots    |   int  |   Maks. liczba uczestnikow         |
 | Price    |  int   |   Cena za pojedynczą atrakcję         |
+
+```sql
+-- Tabela: Attractions
+CREATE TABLE Attractions (
+    AttractionID int  NOT NULL,
+    TripID int  NOT NULL,
+    Name varchar(50)  NOT NULL,
+    Address varchar(50)  NOT NULL,
+    Spots int  NOT NULL,
+    Price int  NOT NULL,
+    CONSTRAINT Attractions_pk PRIMARY KEY  (AttractionID)
+);
+
+    --Powiązanie: Attractions_Trips
+    ALTER TABLE Attractions ADD CONSTRAINT Attractions_Trips
+        FOREIGN KEY (TripID)
+        REFERENCES Trips (TripID);
+```
+
+
 - #### Companies
 Tabela ta zawiera dane o firmach, które kupują u nas wycieczki.
 | Nazwa atrybutu | Typ | Opis/Uwagi |
@@ -138,17 +158,6 @@ Tabela zawiera informacje dotyczące płatności.
 
 ### Kod DDL
 ```sql
--- tables
--- Table: Attractions
-CREATE TABLE Attractions (
-    AttractionID int  NOT NULL,
-    TripID int  NOT NULL,
-    Name varchar(50)  NOT NULL,
-    Address varchar(50)  NOT NULL,
-    Spots int  NOT NULL,
-    Price int  NOT NULL,
-    CONSTRAINT Attractions_pk PRIMARY KEY  (AttractionID)
-);
 
 -- Table: Companies
 CREATE TABLE Companies (
@@ -249,10 +258,6 @@ ALTER TABLE GuestDetails ADD CONSTRAINT GuestsDetails_Attractions
     FOREIGN KEY (AttractionID)
     REFERENCES Attractions (AttractionID);
 
--- Reference: Attractions_Trips (table: Attractions)
-ALTER TABLE Attractions ADD CONSTRAINT Attractions_Trips
-    FOREIGN KEY (TripID)
-    REFERENCES Trips (TripID);
 
 -- Reference: Clients_Customers (table: PrivateClients)
 ALTER TABLE PrivateClients ADD CONSTRAINT Clients_Customers
