@@ -131,14 +131,16 @@ Tabela ta zawiera pary gość-atrakcja, służące do powiązania poszczególnyc
 | Nazwa atrybutu | Typ | Opis/Uwagi |
 | -------------- | --- | ---------- |
 | GuestID | int | ID Gościa |
+| ReservationID | int | ID Rezerwacji |
 | AttractionID | int | ID Atrakcji |
 
 ```sql
 -- Tabela: GuestDetails
 CREATE TABLE GuestDetails (
     GuestID int  NOT NULL,
+    ReservationID int  NOT NULL,
     AttractionID int  NOT NULL,
-    CONSTRAINT GuestDetails_pk PRIMARY KEY  (GuestID,AttractionID)
+    CONSTRAINT GuestDetails_pk PRIMARY KEY  (GuestID,ReservationID,AttractionID)
 );
 
 -- Powiązanie: GuestsDetails_Guests 
@@ -196,8 +198,10 @@ CREATE TABLE Trips (
     TripID int  NOT NULL,
     CountryID varchar(3)  NOT NULL,
     MaxSpots int  NOT NULL,
-    DayLength int  NOT NULL,
+    StartDate date  NOT NULL,
+    EndDate date  NOT NULL,
     Price int  NOT NULL,
+    AvailableFrom date  NOT NULL,
     CONSTRAINT TripID PRIMARY KEY  (TripID)
 );
 
@@ -222,7 +226,7 @@ Tabela zawiera informacje wiążace rezerwacje z wykupionymi atrakcjami.
 CREATE TABLE ReservationDetails (
     AttractionID int  NOT NULL,
     ReservationID int  NOT NULL,
-    GuestsNumber int  NOT NULL,
+    AttendeesNumber int  NOT NULL,
     CONSTRAINT ReservationDetails_pk PRIMARY KEY  (ReservationID,AttractionID)
 );
 
@@ -256,9 +260,9 @@ CREATE TABLE Reservation (
     ReservationID int  NOT NULL,
     CustomerID int  NOT NULL,
     TripID int  NOT NULL,
-    StartDate date  NOT NULL,
-    EndDate date  NOT NULL,
     Spots int  NOT NULL,
+    ReservationDate date  NOT NULL,
+    ToPay int  NOT NULL,
     CONSTRAINT Reservation_pk PRIMARY KEY  (ReservationID)
 );
 
@@ -322,6 +326,7 @@ CREATE TABLE Payments (
     ReservationID int  NOT NULL,
     Amount int  NOT NULL,
     PaymentDate date  NOT NULL,
+    PaymentMethod varchar(50)  NOT NULL,
     CONSTRAINT Payments_pk PRIMARY KEY  (PaymentID)
 );
 
