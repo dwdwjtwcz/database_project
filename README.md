@@ -1,4 +1,5 @@
 
+
 ---
 # Bazy danych
 
@@ -40,12 +41,12 @@ Tabela ta opisuje poszczególne atrakcje dla każdej wycieczki.
 
 | Nazwa atrybutu | Typ | Opis/Uwagi |
 | -------------- | --- | ---------- |
-| AttractionID   | int    |  ID Atrakcji do identyfikacji          |
-| TripID    |   int  |     ID Wycieczki      |
-| Name    |  varchar(50)   |     Nazwa atrakcji       |
-| Address    |  varchar(50)   |  Adres atrakcji (miejsce/region)          |
-| MaxSpots    |   int  |   Maks. liczba uczestnikow         |
-| Price    |  int   |   Cena za pojedynczą atrakcję         |
+| AttractionID | int | ID Atrakcji do identyfikacji |
+| TripID | int | ID Wycieczki |
+| Name |  varchar(50) | Nazwa atrakcji |
+| Address | varchar(50) | Adres atrakcji (miejsce/region) |
+| Spots | int | Maks. liczba uczestnikow |
+| Price | int | Cena za pojedynczą atrakcję |
 
 ```sql
 -- Tabela: Attractions
@@ -59,10 +60,10 @@ CREATE TABLE Attractions (
     CONSTRAINT Attractions_pk PRIMARY KEY  (AttractionID)
 );
 
-    --Powiązanie: Attractions_Trips
-    ALTER TABLE Attractions ADD CONSTRAINT Attractions_Trips
-        FOREIGN KEY (TripID)
-        REFERENCES Trips (TripID);
+--Powiązanie: Attractions_Trips
+ALTER TABLE Attractions ADD CONSTRAINT Attractions_Trips
+    FOREIGN KEY (TripID)
+    REFERENCES Trips (TripID);
 ```
 
 
@@ -85,8 +86,8 @@ CREATE TABLE Companies (
     CONSTRAINT Companies_pk PRIMARY KEY  (CustomerID)
 );
 
-    -- Powiązanie: Companies_Customers 
-    ALTER TABLE Companies ADD CONSTRAINT Companies_Customers
+-- Powiązanie: Companies_Customers 
+ALTER TABLE Companies ADD CONSTRAINT Companies_Customers
     FOREIGN KEY (CustomerID)
     REFERENCES Customers (CustomerID);
 ```
@@ -119,12 +120,12 @@ CREATE TABLE Customers (
     CustomerID int  NOT NULL,
     CountryID varchar(3)  NOT NULL,
     CONSTRAINT CustomerID PRIMARY KEY  (CustomerID)
+);
 
 -- Powiązanie: Customers_Countries 
 ALTER TABLE Customers ADD CONSTRAINT Customers_Countries
     FOREIGN KEY (CountryID)
     REFERENCES Countries (CountryID);
-);
 ```
 - #### GuestDetails
 Tabela ta zawiera pary gość-atrakcja, służące do powiązania poszczególnych gości do poszczególnych atrakcji.
@@ -157,7 +158,6 @@ ALTER TABLE GuestDetails ADD CONSTRAINT GuestDetails_ReservationDetails
 ALTER TABLE GuestDetails ADD CONSTRAINT GuestsDetails_Attractions
     FOREIGN KEY (AttractionID)
     REFERENCES Attractions (AttractionID);
-);
 ```
 
 - #### Guests
@@ -179,11 +179,10 @@ CREATE TABLE Guests (
     CONSTRAINT Guests_pk PRIMARY KEY  (GuestID)
 );
 
--- Powiązanie: Reservation_Guests (table: Guests)
+-- Powiązanie: Reservation_Guests
 ALTER TABLE Guests ADD CONSTRAINT Reservation_Guests
     FOREIGN KEY (ReservationID)
     REFERENCES Reservation (ReservationID);
-);
 ```
 
 - #### Trips
@@ -191,18 +190,20 @@ Tabela opisująca wycieczki znajdujące się w stałej ofercie.
 
 | Nazwa atrybutu | Typ | Opis/Uwagi |
 | -------------- | --- | ---------- |
-| TripID    |  int  |   ID Wycieczki       |
-| CountryID  |   varchar(15)  |   ID Kraju    |
-|   Spots         |     int           |   Maksymalna ilość miejsc na wycieczce   |
-|   DayLength                 |       int            |       Długość wycieczki w dniach                                   |
-|         Price           |        int           |         Cena całej wycieczki (nie wliczając atrakcji)                                 |
+| TripID | int | ID Wycieczki |
+| CountryID | varchar(3) | ID Kraju |
+| Spots | int | Maksymalna ilość miejsc na wycieczce |
+| StartDate | date | Data rozpoczęcia wycieczki |
+| EndDate | date | Data zakończenia wycieczki |
+| Price | int | Cena całej wycieczki (nie wliczając atrakcji) |
+| AvailableFrom | date | Data od której wycieczxka jest dostępna do zakupu |
 
 ```sql
 -- Tabela: Trips
 CREATE TABLE Trips (
     TripID int  NOT NULL,
     CountryID varchar(3)  NOT NULL,
-    MaxSpots int  NOT NULL,
+    Spots int  NOT NULL,
     StartDate date  NOT NULL,
     EndDate date  NOT NULL,
     Price int  NOT NULL,
@@ -214,7 +215,6 @@ CREATE TABLE Trips (
 ALTER TABLE Trips ADD CONSTRAINT Trips_Countries
     FOREIGN KEY (CountryID)
     REFERENCES Countries (CountryID);
-);
 ```
 
 - #### ReservationDetails
@@ -222,8 +222,8 @@ Tabela zawiera informacje wiążace rezerwacje z wykupionymi atrakcjami.
 
 | Nazwa atrybutu | Typ | Opis/Uwagi |
 | -------------- | --- | ---------- |
-| AttractionID    |  int  |   ID Atrakcji       |
-| ReservationID  |   int  |   ID Rezerwacji    |
+| AttractionID | int | ID Atrakcji |
+| ReservationID  | int | ID Rezerwacji |
 | AttendeesNumber | int | Ilość gości przypisanych do danej atrakcji |
 
 ```sql
@@ -244,7 +244,6 @@ ALTER TABLE ReservationDetails ADD CONSTRAINT ReservationDetails_Attractions
 ALTER TABLE ReservationDetails ADD CONSTRAINT ReservationDetails_Reservation
     FOREIGN KEY (ReservationID)
     REFERENCES Reservation (ReservationID);
-);
 ```
 
 - #### Reservation
@@ -252,12 +251,12 @@ Tabela zawiera informacje dotyczące poszczególnych rezerwacji.
 
 | Nazwa atrybutu | Typ | Opis/Uwagi |
 | -------------- | --- | ---------- |
-| ReservationID  |   int  |   ID Rezerwacji    |
-| CustomerID  |   int  |   ID Klienta    |
-| TripID    |  int  |   ID Wycieczki       |
-| StartDate    |  date  |   Data rozpoczęcia      |
-| EndDate    |  date  |   Data zakończenia      |
+| ReservationID | int | ID Rezerwacji |
+| CustomerID  | int | ID Klienta |
+| TripID | int  | ID Wycieczki |
 | Spots | int | Ilość zarezerwowanych miejsc |
+| ReservationDate | date | Data zakupu rezerwacji |
+| ToPay | int | Cena rezerwacji |
 
 ```sql
 -- Tabela: Reservation
@@ -282,7 +281,6 @@ ALTER TABLE Reservation ADD CONSTRAINT Reservation_Customers
 ALTER TABLE Reservation ADD CONSTRAINT Reservation_Trips
     FOREIGN KEY (TripID)
     REFERENCES Trips (TripID);
-);
 ```
 
 - #### PrivateClients
@@ -319,10 +317,11 @@ Tabela zawiera informacje dotyczące płatności.
 
 | Nazwa atrybutu | Typ | Opis/Uwagi |
 | -------------- | --- | ---------- |
-| PaymentID  |   int  |   ID Płatności   |
-| ReservationID  |   int  |   ID Rezerwacji    |
-| Amount    |  int  |   Wartość płatności      |
-| PaymentDate   |  date  |   Data zaksięgowania płatności     |
+| PaymentID | int  | ID Płatności |
+| ReservationID | int | ID Rezerwacji |
+| Amount | int | Wartość płatności |
+| PaymentDate | date | Data zaksięgowania płatności |
+| PaymentMethod | varchar(50) | Metoda płatności |
 
 ```sql
 -- Tabela: Payments
