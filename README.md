@@ -148,6 +148,11 @@ ALTER TABLE GuestDetails ADD CONSTRAINT GuestsDetails_Guests
     FOREIGN KEY (GuestID)
     REFERENCES Guests (GuestID);
 
+-- Powiązanie: GuestDetails_ReservationDetails
+ALTER TABLE GuestDetails ADD CONSTRAINT GuestDetails_ReservationDetails
+    FOREIGN KEY (ReservationID,AttractionID)
+    REFERENCES ReservationDetails (ReservationID,AttractionID)
+
 -- Powiązanie: GuestsDetails_Attractions 
 ALTER TABLE GuestDetails ADD CONSTRAINT GuestsDetails_Attractions
     FOREIGN KEY (AttractionID)
