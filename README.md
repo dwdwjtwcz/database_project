@@ -340,4 +340,13 @@ ALTER TABLE Payments ADD CONSTRAINT Payments_Reservation
     FOREIGN KEY (ReservationID)
     REFERENCES Reservation (ReservationID);
 ```
+# 3. Widoki
 
+## Widok pozostałych kwot do zapłaty za wycieczki dla każdej rezerwacji.
+```sql
+create view pay AS
+select r.ReservationID, r.CustomerID,
+max(r.ToPay)-isnull(sum(p.Amount),0) as LeftToPay from Reservation r
+left join Payments p on r.ReservationID=p.ReservationID
+group by r.ReservationID,r.CustomerID
+```
