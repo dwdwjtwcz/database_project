@@ -350,3 +350,6 @@ max(r.ToPay)-isnull(sum(p.Amount),0) as LeftToPay from Reservation r
 left join Payments p on r.ReservationID=p.ReservationID
 group by r.ReservationID,r.CustomerID
 ```
+## Przykłady użycia
+![przyklad1](przyklad1.png)
+![przyklad2](przyklad2.png)
