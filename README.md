@@ -363,5 +363,5 @@ join ReservationDetails rd on gd.ReservationID = rd.ReservationID
 group by rd.AttractionID, rd.AttendeesNumber
 ```
 
-## PRzykłady użycia
+## Przykłady użycia
 ![przyklad3](przyklad3.png)
