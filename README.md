@@ -353,3 +353,15 @@ group by r.ReservationID,r.CustomerID
 ## Przykłady użycia
 ![przyklad1](przyklad1.png)
 ![przyklad2](przyklad2.png)
+
+# Widok zapełnionych miejsc w atrakcji w stosunku do miejsc wykupionych
+```sql
+create view spots_to_bought as
+select rd.AttractionID, count(gd.GuestID) as 'places taken', rd.AttendeesNumber as 'places bought'
+from GuestDetails gd
+join ReservationDetails rd on gd.ReservationID = rd.ReservationID
+group by rd.AttractionID, rd.AttendeesNumber
+```
+
+## PRzykłady użycia
+![przyklad3](przyklad3.png)
