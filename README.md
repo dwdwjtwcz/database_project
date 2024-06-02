@@ -354,7 +354,7 @@ group by r.ReservationID,r.CustomerID
 ![przyklad1](przyklad1.png)
 ![przyklad2](przyklad2.png)
 
-# Widok zapełnionych miejsc w atrakcji w stosunku do miejsc wykupionych
+## Widok zapełnionych miejsc w atrakcji w stosunku do miejsc wykupionych
 ```sql
 create view spots_to_bought as
 select rd.AttractionID, count(gd.GuestID) as 'places taken', rd.AttendeesNumber as 'places bought'
@@ -366,7 +366,7 @@ group by rd.AttractionID, rd.AttendeesNumber
 ## Przykłady użycia
 ![przyklad3](przyklad3.png)
 
-# Widok pozostałych wolnych miejsc dla atrakcji
+## Widok pozostałych wolnych miejsc dla atrakcji
 ```sql
 CREATE VIEW atstatus AS
 SELECT t.TripID, a.AttractionID, (isnull(a.Spots - sum(rd.AttendeesNumber), a.Spots)) as FreeSpots
@@ -377,4 +377,128 @@ RIGHT JOIN Attractions a on a.TripID = t.TripID
 GROUP BY t.TripID, a.AttractionID, a.Spots
 ```
 
+# 4. Funkcje
+
+## Funkcja obliczająca kwotę do zapłaty za całą rezerwację wraz z atrakcjami.
+```sql
+CREATE or alter FUNCTION dbo.res_full_cost(@ReservationID INT)
+RETURNS DECIMAL(19, 2)
+AS
+BEGIN
+    DECLARE @CalkowityKoszt DECIMAL(19, 2);
+
+    SELECT @CalkowityKoszt = isnull((
+        SELECT r.Price*r.Spots
+        FROM Reservations r
+        WHERE r.ReservationID = @ReservationID
+        
+    ),0) + isnull((
+        SELECT SUM(rd.Price * rd.AttendeesNumber) 
+        FROM ReservationDetails rd
+        WHERE rd.ReservationID = @ReservationID
+    ),0);
+
+    RETURN @CalkowityKoszt;
+END;
+```
+
+# 5. Procedury
+
+## Procedura dodająca klienta - firmę.
+```sql
+create or alter proc p_add_cus_comp
+@countryid VARCHAR(3), @companyname VARCHAR(50), @address VARCHAR(50), @contactnumber VARCHAR(15)
+AS
+BEGIN
+    begin TRY
+        begin TRANSACTION
+        if not exists (select * from Countries where CountryID = @countryid)
+            throw 50003, 'No country with this CountryID', 1;
+        if left(@contactnumber, 1) <> '+'
+            throw 50003, 'ContactNumber should start with +', 1;
+        declare @id int;
+        select @id = isnull(max(customerid),0)+1 from customers;
+        INSERT INTO Customers (CustomerID, CountryID) VALUES (@id, @countryid);
+        INSERT INTO Companies (CustomerID, CompanyName, Address, ContactNumber) VALUES  (@id, @companyname, @address, @contactnumber);
+        commit;
+    end TRY
+    begin CATCH
+        rollback;
+        throw;
+    end CATCH;
+end;
+```
+
+## Procedura dodająca klienta prywatnego.
+```sql
+create or alter proc p_add_cus_priv
+@countryid VARCHAR(3), @firstname VARCHAR(50), @lastname VARCHAR(50), @address VARCHAR(50), @contactnumber VARCHAR(15)
+AS
+BEGIN
+    begin TRY
+        begin TRANSACTION
+        if not exists (select * from Countries where CountryID = @countryid)
+            throw 50003, 'No country with this CountryID', 1;
+        if left(@contactnumber, 1) <> '+'
+            throw 50003, 'ContactNumber should start with +', 1;
+        declare @id int;
+        select @id = isnull(max(customerid),0)+1 from customers;
+        INSERT INTO Customers (CustomerID, CountryID) VALUES (@id, @countryid);
+        INSERT INTO PrivateClients (CustomerID, FirstName, LastName, Address, ContactNumber) VALUES  (@id, @firstname, @lastname, @address, @contactnumber);
+        commit;
+    end TRY
+    begin CATCH
+        rollback;
+        throw;
+    end CATCH;
+end;
+```
+
+## Procedura dodająca rezerwację (bez atrakcji - te później).
+```sql
+CREATE OR ALTER PROCEDURE p_add_reservation
+    @CustomerID INT,
+    @TripID INT,
+    @Spots INT
+AS
+BEGIN
+    BEGIN TRY
+        BEGIN TRANSACTION
+        IF NOT EXISTS (SELECT * FROM Trips WHERE TripID = @TripID)
+            THROW 50001, 'No trip with this TripID.', 1;
+
+        DECLARE @TripSpots INT;
+        SELECT @TripSpots = Spots FROM Trips WHERE TripID = @TripID;
+        DECLARE @ReservedSpots INT;
+        SELECT @ReservedSpots = ISNULL(SUM(Spots), 0) FROM Reservations WHERE TripID = @TripID;
+        IF @Spots > (@TripSpots - @ReservedSpots)
+            THROW 50002, 'Not enough available spots for this trip.', 1;
+
+        declare @today date;
+        select @today = getdate()
+
+        IF @today < (SELECT AvailableFrom FROM Trips WHERE TripID = @TripID)
+            THROW 50003, 'You cannot make a reservation for this trip yet. :(', 1;
+        IF DATEDIFF(DAY, @today, (SELECT StartDate FROM Trips WHERE TripID = @TripID)) < 7
+            THROW 50004, 'Time to make reservations for this trip is over. :(', 1;
+
+        DECLARE @TripPrice DECIMAL(19, 2);
+        SELECT @TripPrice = Price FROM Trips WHERE TripID = @TripID;
+
+        declare @id int;
+        select @id = isnull(max(ReservationID),0)+1 from Reservations;
+
+        INSERT INTO Reservations (ReservationID, CustomerID, TripID, Spots, ReservationDate, Price)
+        VALUES (@id, @CustomerID, @TripID, @Spots, @today, @TripPrice);
+
+        select dbo.res_full_cost(@id) as topay
+
+        COMMIT;
+    END TRY
+    BEGIN CATCH
+        ROLLBACK;
+        THROW;
+    END CATCH;
+END;
+```
 
