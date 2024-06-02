@@ -34,7 +34,7 @@ Funkcje klienta:
 # 2.    Baza danych
 
 ### Schemat bazy danych
-![DIAGRAM](diagram3.png)
+![DIAGRAM](diagram.png)
 ### Opis poszczególnych tabel:
 - #### Attractions
 Tabela ta opisuje poszczególne atrakcje dla każdej wycieczki.
