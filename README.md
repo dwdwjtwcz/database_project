@@ -369,12 +369,12 @@ group by rd.AttractionID, rd.AttendeesNumber
 ## Widok pozostałych wolnych miejsc dla atrakcji
 ```sql
 CREATE VIEW atstatus AS
-SELECT t.TripID, a.AttractionID, (isnull(a.Spots - sum(rd.AttendeesNumber), a.Spots)) as FreeSpots
-FROM Reservation r
+SELECT t.TripID, a.AttractionID, a.Name as AttractionName, (isnull(a.Spots - sum(rd.AttendeesNumber), a.Spots)) as FreeSpots
+FROM Reservations r
 JOIN ReservationDetails rd on r.ReservationID = rd.ReservationID
 RIGHT JOIN Trips t on r.TripID = t.TripID
 RIGHT JOIN Attractions a on a.TripID = t.TripID
-GROUP BY t.TripID, a.AttractionID, a.Spots
+GROUP BY t.TripID, a.AttractionID, a.Spots, a.Name
 ```
 ## Widok zawierający wykaz gości
 ```sql
