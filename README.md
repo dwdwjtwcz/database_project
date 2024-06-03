@@ -356,15 +356,15 @@ group by r.ReservationID,r.CustomerID
 
 ## Widok zapełnionych miejsc w atrakcji w stosunku do miejsc wykupionych
 ```sql
-create view spots_to_bought as
-select rd.AttractionID, count(gd.GuestID) as 'places taken', rd.AttendeesNumber as 'places bought'
-from GuestDetails gd
-join ReservationDetails rd on gd.ReservationID = rd.ReservationID
-group by rd.AttractionID, rd.AttendeesNumber
+create or alter view SpotCheck as
+select a.AttractionID, count(gd.GuestID) as PlacesTaken, isnull(rd.AttendeesNumber,0) as PlacesReserved from Attractions a
+full join ReservationDetails rd on rd.AttractionID=a.AttractionID
+full join GuestDetails gd on rd.ReservationID=gd.ReservationID
+group by a.AttractionID, rd.AttendeesNumber
 ```
 
 ## Przykład użycia
-![przyklad3](przyklad3.png)
+![spotcheck_przykład](spotcheck_przykład.png)
 
 ## Widok pozostałych wolnych miejsc dla atrakcji
 ```sql
@@ -376,6 +376,9 @@ RIGHT JOIN Trips t on r.TripID = t.TripID
 RIGHT JOIN Attractions a on a.TripID = t.TripID
 GROUP BY t.TripID, a.AttractionID, a.Spots, a.Name
 ```
+## Przykład użycia
+![atstatus_przykład](atstatus_przykład.png)
+
 ## Widok zawierający wykaz gości
 ```sql
 CREATE VIEW GuestList AS
@@ -393,7 +396,7 @@ LEFT JOIN
     Attractions a ON gd.AttractionID = a.AttractionID AND t.TripID = a.TripID;
 ```
 ## Przykład użycia
-![przyklad4](przyklad4.png)
+![guestlist_przykład](guestlist_przykład.png)
 
 # 4. Funkcje
 
