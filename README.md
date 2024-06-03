@@ -344,16 +344,10 @@ ALTER TABLE Payments ADD CONSTRAINT Payments_Reservation
 
 ## Widok pozostałych kwot do zapłaty za wycieczki dla każdej rezerwacji.
 ```sql
-create view pay AS
-select r.ReservationID, r.CustomerID,
-max(r.ToPay)-isnull(sum(p.Amount),0) as LeftToPay from Reservation r
-left join Payments p on r.ReservationID=p.ReservationID
-group by r.ReservationID,r.CustomerID
+TBA
 ```
 ## Przykład użycia
-![przyklad1](przyklad1.png)
-![przyklad2](przyklad2.png)
-
+TBA
 ## Widok zapełnionych miejsc w atrakcji w stosunku do miejsc wykupionych
 ```sql
 create or alter view SpotCheck as
