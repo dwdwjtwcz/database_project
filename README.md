@@ -422,54 +422,57 @@ END;
 
 # 5. Procedury
 
-## Procedura dodająca klienta - firmę.
-```sql
-create or alter proc p_add_cus_comp
-@countryid VARCHAR(3), @companyname VARCHAR(50), @address VARCHAR(50), @contactnumber VARCHAR(15)
+## Procedura dodająca klienta lub firmę
+```CREATE OR ALTER PROC p_add_customer
+@customerType CHAR(1),  -- 'P' - Private Client, 'C' - Company
+@countryid VARCHAR(3), 
+@firstname VARCHAR(50) = NULL, 
+@lastname VARCHAR(50) = NULL, 
+@companyname VARCHAR(50) = NULL, 
+@address VARCHAR(50), 
+@contactnumber VARCHAR(15)
 AS
 BEGIN
-    begin TRY
-        begin TRANSACTION
-        if not exists (select * from Countries where CountryID = @countryid)
-            throw 50003, 'No country with this CountryID', 1;
-        if left(@contactnumber, 1) <> '+'
-            throw 50003, 'ContactNumber should start with +', 1;
-        declare @id int;
-        select @id = isnull(max(customerid),0)+1 from customers;
-        INSERT INTO Customers (CustomerID, CountryID) VALUES (@id, @countryid);
-        INSERT INTO Companies (CustomerID, CompanyName, Address, ContactNumber) VALUES  (@id, @companyname, @address, @contactnumber);
-        commit;
-    end TRY
-    begin CATCH
-        rollback;
-        throw;
-    end CATCH;
-end;
-```
+    BEGIN TRY
+        BEGIN TRANSACTION
+        IF NOT EXISTS (SELECT * FROM Countries WHERE CountryID = @countryid)
+            THROW 50003, 'No country with this CountryID', 1;
 
-## Procedura dodająca klienta prywatnego.
-```sql
-create or alter proc p_add_cus_priv
-@countryid VARCHAR(3), @firstname VARCHAR(50), @lastname VARCHAR(50), @address VARCHAR(50), @contactnumber VARCHAR(15)
-AS
-BEGIN
-    begin TRY
-        begin TRANSACTION
-        if not exists (select * from Countries where CountryID = @countryid)
-            throw 50003, 'No country with this CountryID', 1;
-        if left(@contactnumber, 1) <> '+'
-            throw 50003, 'ContactNumber should start with +', 1;
-        declare @id int;
-        select @id = isnull(max(customerid),0)+1 from customers;
+        IF LEFT(@contactnumber, 1) <> '+'
+            THROW 50003, 'ContactNumber should start with +', 1;
+
+        DECLARE @id INT;
+        SELECT @id = ISNULL(MAX(customerid),0)+1 FROM customers;
+
         INSERT INTO Customers (CustomerID, CountryID) VALUES (@id, @countryid);
-        INSERT INTO PrivateClients (CustomerID, FirstName, LastName, Address, ContactNumber) VALUES  (@id, @firstname, @lastname, @address, @contactnumber);
-        commit;
-    end TRY
-    begin CATCH
-        rollback;
-        throw;
-    end CATCH;
-end;
+        IF @customerType = 'C'
+        BEGIN
+            IF @companyname IS NULL
+                THROW 50003, 'CompanyName is required for companies', 1;
+
+            INSERT INTO Companies (CustomerID, CompanyName, Address, ContactNumber) 
+            VALUES (@id, @companyname, @address, @contactnumber);
+        END
+        ELSE IF @customerType = 'P'
+        BEGIN
+            IF @firstname IS NULL OR @lastname IS NULL
+                THROW 50003, 'FirstName and LastName are required for private clients', 1;
+
+            INSERT INTO PrivateClients (CustomerID, FirstName, LastName, Address, ContactNumber) 
+            VALUES (@id, @firstname, @lastname, @address, @contactnumber);
+        END
+        ELSE
+        BEGIN
+            THROW 50003, 'Invalid customer type. Use ''P'' for Private Client or ''C'' for Company', 1;
+        END
+
+        COMMIT;
+    END TRY
+    BEGIN CATCH
+        ROLLBACK;
+        THROW;
+    END CATCH;
+END;```
 ```
 
 ## Procedura dodająca rezerwację (bez atrakcji - te później).
@@ -520,3 +523,91 @@ BEGIN
 END;
 ```
 
+## Procedura dodająca atrakcje do rezerwacji 
+```sql
+CREATE OR ALTER PROCEDURE p_add_attr_reservation
+    @ReservationID INT,
+    @AttractionID INT,
+    @AttendeesNumber INT
+AS
+BEGIN
+    BEGIN TRY
+        BEGIN TRANSACTION
+
+        -- Sprawdzenie, czy istnieje rezerwacja o podanym ID
+        IF @AttendeesNumber < 1
+            THROW 50005, 'You cannot make a reservation with zero or less people.', 1;
+
+        -- Sprawdzenie, czy istnieje rezerwacja o podanym ID
+        IF NOT EXISTS (SELECT * FROM Reservations WHERE ReservationID = @ReservationID)
+            THROW 50001, 'No reservation with this ReservationID.', 1;
+
+        -- Sprawdzenie, czy istnieje atrakcja o podanym ID
+        IF NOT EXISTS (SELECT * FROM Attractions WHERE AttractionID = @AttractionID)
+            THROW 50002, 'No attraction with this AttractionID.', 1;
+
+        -- Pobranie liczby miejsc zarezerwowanych na wycieczkę powiązaną z rezerwacją
+        DECLARE @ReservedSpots INT;
+        SELECT @ReservedSpots = Spots FROM Reservations WHERE ReservationID = @ReservationID;
+
+        -- sprawdzenie, czy jest wiecej na atrakcje niz na calego tripa
+        IF @AttendeesNumber > @ReservedSpots
+            THROW 50003, 'You cannot take more people to an attraction than the whole trip.', 1;
+
+        -- Pobranie liczby miejsc maksymalnych na atrakcji
+        DECLARE @AllSpots INT;
+        SELECT @AllSpots = Spots FROM Attractions WHERE AttractionID = @AttractionID;
+
+        -- Pobranie liczby miejsc zarezerwowanych już dla tej atrakcji
+        DECLARE @ReservedAttractionSpots INT;
+        SELECT @ReservedAttractionSpots = ISNULL(SUM(AttendeesNumber), 0) 
+        FROM ReservationDetails 
+        WHERE AttractionID = @AttractionID;
+
+        -- Sprawdzenie, czy liczba miejsc jest git
+        IF (@AllSpots - @ReservedAttractionSpots) < @AttendeesNumber
+            THROW 50004, 'Not enough free spots for this attraction to book.', 1;
+
+        -- Pobranie ceny atrakcji
+        DECLARE @AttractionPrice DECIMAL(19, 2);
+        SELECT @AttractionPrice = Price FROM Attractions WHERE AttractionID = @AttractionID;
+
+        -- Dodanie szczegółów rezerwacji
+        INSERT INTO ReservationDetails (ReservationID, AttractionID, AttendeesNumber, Price)
+        VALUES (@ReservationID, @AttractionID, @AttendeesNumber, @AttractionPrice);
+
+        COMMIT;
+    END TRY
+    BEGIN CATCH
+        ROLLBACK;
+        THROW;
+    END CATCH;
+END;
+```
+
+## Procedura wyświetlająca płatności w podanym okresie czasu
+```sql
+CREATE OR ALTER PROCEDURE p_get_payments_in_date_range  @startDate DATE,  @endDate DATE
+AS
+BEGIN
+    SELECT p.PaymentID, r.CustomerID, r.ReservationID, p.PaymentDate, p.Amount, p.PaymentMethod,
+        CASE
+            WHEN pc.CustomerID IS NOT NULL THEN CONCAT(pc.FirstName, ' ', pc.LastName)
+            WHEN co.CustomerID IS NOT NULL THEN co.CompanyName
+        END AS CustomerName
+    FROM 
+        Payments p
+    INNER JOIN 
+        Reservation r ON p.ReservationID = r.ReservationID
+    INNER JOIN 
+        Customers c ON r.CustomerID = c.CustomerID
+    LEFT JOIN 
+        PrivateClients pc ON r.CustomerID = pc.CustomerID
+    LEFT JOIN 
+        Companies co ON r.CustomerID = co.CustomerID
+    WHERE 
+        p.PaymentDate BETWEEN @startDate AND @endDate
+    ORDER BY 
+        p.PaymentDate;
+END;
+```
