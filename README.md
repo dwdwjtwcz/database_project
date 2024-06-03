@@ -419,6 +419,39 @@ BEGIN
     RETURN @CalkowityKoszt;
 END;
 ```
+## Funkcja wypisująca liczbę pozostałych miejsc na wycieczkę.
+```sql
+CREATE or alter FUNCTION trip_avail(@tripID INT)
+RETURNS INT
+AS
+BEGIN
+    DECLARE @totalSpots INT;
+    DECLARE @reservedSpots INT;
+    
+    SELECT @totalSpots = Spots FROM Trips WHERE TripID = tripID;
+    
+    SELECT @reservedSpots = isnull(SUM(Spots),0) FROM Reservations WHERE TripID = tripID;
+    
+    RETURN @totalSpots - @reservedSpots;
+END;
+```
+
+## Funkcja wypisująca liczbę pozostałych miejsc na atrakcję.
+```sql
+CREATE or alter FUNCTION attr_avail(@attractionID INT)
+RETURNS INT
+AS
+BEGIN
+    DECLARE @totalSpots INT;
+    DECLARE @reservedSpots INT;
+    
+    SELECT @totalSpots = Spots FROM Attractions WHERE AttractionID = @attractionID;
+    
+    SELECT @reservedSpots = isnull(SUM(AttendeesNumber),0) FROM ReservationDetails WHERE AttractionID = @attractionID;
+    
+    RETURN @totalSpots - @reservedSpots;
+END;
+```
 
 # 5. Procedury
 
