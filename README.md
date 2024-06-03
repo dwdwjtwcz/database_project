@@ -350,7 +350,7 @@ max(r.ToPay)-isnull(sum(p.Amount),0) as LeftToPay from Reservation r
 left join Payments p on r.ReservationID=p.ReservationID
 group by r.ReservationID,r.CustomerID
 ```
-## Przykłady użycia
+## Przykład użycia
 ![przyklad1](przyklad1.png)
 ![przyklad2](przyklad2.png)
 
@@ -363,7 +363,7 @@ join ReservationDetails rd on gd.ReservationID = rd.ReservationID
 group by rd.AttractionID, rd.AttendeesNumber
 ```
 
-## Przykłady użycia
+## Przykład użycia
 ![przyklad3](przyklad3.png)
 
 ## Widok pozostałych wolnych miejsc dla atrakcji
@@ -376,6 +376,24 @@ RIGHT JOIN Trips t on r.TripID = t.TripID
 RIGHT JOIN Attractions a on a.TripID = t.TripID
 GROUP BY t.TripID, a.AttractionID, a.Spots
 ```
+## Widok zawierający wykaz gości
+```sql
+CREATE VIEW GuestList AS
+SELECT
+    g.GuestID, g.FirstName, g.LastName, t.TripID, g.ReservationID, t.CountryID, t.StartDate, t.EndDate, COALESCE(CAST(a.AttractionID as varchar), 'None') as AttractionID, ISNULL(a.Name, 'None') as AttractionName
+FROM
+    Guests g
+JOIN
+    Reservation r ON g.ReservationID = r.ReservationID
+JOIN
+    Trips t ON r.TripID = t.TripID
+LEFT JOIN
+    GuestDetails gd ON g.GuestID = gd.GuestID AND g.ReservationID = gd.ReservationID
+LEFT JOIN
+    Attractions a ON gd.AttractionID = a.AttractionID AND t.TripID = a.TripID;
+```
+## Przykład użycia
+![przyklad4](przyklad4.png)
 
 # 4. Funkcje
 
