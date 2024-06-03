@@ -423,7 +423,8 @@ END;
 # 5. Procedury
 
 ## Procedura dodająca klienta lub firmę
-```CREATE OR ALTER PROC p_add_customer
+```sql
+CREATE OR ALTER PROC p_add_customer
 @customerType CHAR(1),  -- 'P' - Private Client, 'C' - Company
 @countryid VARCHAR(3), 
 @firstname VARCHAR(50) = NULL, 
@@ -587,7 +588,7 @@ END;
 
 ## Procedura wyświetlająca płatności w podanym okresie czasu
 ```sql
-CREATE OR ALTER PROCEDURE p_get_payments_in_date_range  @startDate DATE,  @endDate DATE
+CREATE OR ALTER PROCEDURE p_get_payments  @startDate DATE,  @endDate DATE
 AS
 BEGIN
     SELECT p.PaymentID, r.CustomerID, r.ReservationID, p.PaymentDate, p.Amount, p.PaymentMethod,
