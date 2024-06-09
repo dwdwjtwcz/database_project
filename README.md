@@ -353,6 +353,9 @@ from Reservations r
 )
 ```
 
+## Przykład użycia
+![spotcheck_przykład](przyklady/views/PaymentsInfo.png)
+
 ## 2. Widok zapełnionych miejsc w atrakcji w stosunku do miejsc wykupionych
 ```sql
 create or alter view SpotCheck as
