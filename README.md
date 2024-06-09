@@ -342,13 +342,18 @@ ALTER TABLE Payments ADD CONSTRAINT Payments_Reservation
 ```
 # 3. Widoki
 
-## Widok pozostałych kwot do zapłaty za wycieczki dla każdej rezerwacji.
+## 1. Widok wypisujący rezerwacje, ceny wycieczek, kwotę do zapłaty, zapłacone i do zapłaty
 ```sql
-TBA
+create or ALTER view [dbo].[PaymentsInfo] as
+(
+select ReservationID,CustomerID, dbo.res_full_cost(ReservationID) as Price,
+dbo.res_all_payments(ReservationID) as Paid, 
+dbo.res_full_cost(ReservationID) - dbo.res_all_payments(ReservationID) as LeftToPay
+from Reservations r
+)
 ```
-## Przykład użycia
-TBA
-## Widok zapełnionych miejsc w atrakcji w stosunku do miejsc wykupionych
+
+## 2. Widok zapełnionych miejsc w atrakcji w stosunku do miejsc wykupionych
 ```sql
 create or alter view SpotCheck as
 select a.AttractionID, count(gd.GuestID) as PlacesTaken, isnull(rd.AttendeesNumber,0) as PlacesReserved from Attractions a
@@ -360,7 +365,7 @@ group by a.AttractionID, rd.AttendeesNumber
 ## Przykład użycia
 ![spotcheck_przykład](spotcheck_przykład.png)
 
-## Widok pozostałych wolnych miejsc dla atrakcji
+## 3. Widok pozostałych wolnych miejsc dla atrakcji
 ```sql
 CREATE VIEW atstatus AS
 SELECT t.TripID, a.AttractionID, a.Name as AttractionName, (isnull(a.Spots - sum(rd.AttendeesNumber), a.Spots)) as FreeSpots
@@ -373,7 +378,7 @@ GROUP BY t.TripID, a.AttractionID, a.Spots, a.Name
 ## Przykład użycia
 ![atstatus_przykład](atstatus_przykład.png)
 
-## Widok zawierający wykaz gości
+## 4. Widok zawierający wykaz gości
 ```sql
 CREATE VIEW GuestList AS
 SELECT
@@ -392,7 +397,7 @@ LEFT JOIN
 ## Przykład użycia
 ![guestlist_przykład](guestlist_przykład.png)
 
-## Widok wypisujący gości atrakcji.
+## 5. Widok wypisujący gości atrakcji.
 ```sql
 create or ALTER view [dbo].[AttrInfo] as
 (
@@ -402,7 +407,7 @@ join Attractions a on gd.AttractionID=a.AttractionID
 )
 ```
 
-## Widok wypisujący najważniejsze informacje o wycieczkach.
+## 6. Widok wypisujący najważniejsze informacje o wycieczkach.
 ```sql
 create or ALTER   VIEW [dbo].[FullTripInfo] AS
 (
@@ -413,20 +418,9 @@ from Trips t join Attractions a on t.TripID=a.TripID
 )
 ```
 
-## Widok wypisujący rezerwacje, ceny wycieczek, kwotę do zapłaty, zapłacone i do zapłaty
-```sql
-create or ALTER view [dbo].[PaymentsInfo] as
-(
-select ReservationID,CustomerID, dbo.res_full_cost(ReservationID) as Price,
-dbo.res_all_payments(ReservationID) as Paid, 
-dbo.res_full_cost(ReservationID) - dbo.res_all_payments(ReservationID) as LeftToPay
-from Reservations r
-)
-```
-
 # 4. Funkcje
 
-## Funkcja obliczająca kwotę do zapłaty za całą rezerwację wraz z atrakcjami.
+## 1. Funkcja obliczająca kwotę do zapłaty za całą rezerwację wraz z atrakcjami.
 ```sql
 CREATE or alter FUNCTION dbo.res_full_cost(@ReservationID INT)
 RETURNS DECIMAL(19, 2)
@@ -448,7 +442,7 @@ BEGIN
     RETURN @CalkowityKoszt;
 END;
 ```
-## Funkcja wypisująca liczbę pozostałych miejsc na wycieczkę.
+## 2. Funkcja wypisująca liczbę pozostałych miejsc na wycieczkę.
 ```sql
 CREATE or alter FUNCTION trip_avail(@tripID INT)
 RETURNS INT
@@ -465,7 +459,7 @@ BEGIN
 END;
 ```
 
-## Funkcja wypisująca liczbę pozostałych miejsc na atrakcję.
+## 3. Funkcja wypisująca liczbę pozostałych miejsc na atrakcję.
 ```sql
 CREATE or alter FUNCTION attr_avail(@attractionID INT)
 RETURNS INT
@@ -482,7 +476,7 @@ BEGIN
 END;
 ```
 
-## Funkcja wypisująca gościa i atrakcje na które się wybiera.
+## 4. Funkcja wypisująca gościa i atrakcje na które się wybiera.
 ```sql
 create or alter FUNCTION [dbo].[guest_attr]
 (
@@ -501,7 +495,7 @@ RETURN
 );
 ```
 
-## Funkcja zwracająca kwotę do zapłaty za wycieczkę wraz z atrakcjami dla gościa
+## 5. Funkcja zwracająca kwotę do zapłaty za wycieczkę wraz z atrakcjami dla gościa
 ```sql
 create or ALTER FUNCTION [dbo].[guest_full_cost](@GuestID INT, @ReservationID INT)
 RETURNS DECIMAL(19, 2)
@@ -523,7 +517,7 @@ BEGIN
     RETURN @CalkowityKoszt;
 END;
 ```
-## Funkcja zwracająca kwotę do zapłaty za wycieczkę wraz z atrakcjami za całość
+## 6. Funkcja zwracająca kwotę do zapłaty za wycieczkę wraz z atrakcjami za całość
 ```sql
 create or ALTER   FUNCTION [dbo].[res_full_cost](@ReservationID INT)
 RETURNS DECIMAL(19, 2)
@@ -547,7 +541,7 @@ END;
 ```
 # 5. Procedury
 
-## Procedura dodająca klienta lub firmę
+## 1. Procedura dodająca klienta lub firmę
 ```sql
 CREATE OR ALTER PROC p_add_customer
 @customerType CHAR(1),  -- 'P' - Private Client, 'C' - Company
@@ -601,7 +595,7 @@ BEGIN
 END;```
 ```
 
-## Procedura dodająca rezerwację (bez atrakcji - te później).
+## 2. Procedura dodająca rezerwację (bez atrakcji - te później).
 ```sql
 CREATE OR ALTER PROCEDURE p_add_reservation
     @CustomerID INT,
@@ -649,7 +643,7 @@ BEGIN
 END;
 ```
 
-## Procedura dodająca atrakcje do rezerwacji 
+## 3. Procedura dodająca atrakcje do rezerwacji 
 ```sql
 CREATE OR ALTER PROCEDURE p_add_attr_reservation
     @ReservationID INT,
@@ -711,7 +705,7 @@ BEGIN
 END;
 ```
 
-## Procedura wyświetlająca płatności w podanym okresie czasu
+## 4. Procedura wyświetlająca płatności w podanym okresie czasu
 ```sql
 CREATE OR ALTER PROCEDURE p_get_payments  @startDate DATE,  @endDate DATE
 AS
@@ -738,7 +732,7 @@ BEGIN
 END;
 ```
 
-## Procedura dodająca gościa do atrakcji
+## 5. Procedura dodająca gościa do atrakcji
 ```sql
 CREATE OR ALTER   PROCEDURE [dbo].[p_add_guest_attr]
     @ReservationID INT,
@@ -788,7 +782,7 @@ BEGIN
 END;
 ```
 
-## Procedura dodająca gościa do rezerwacji
+## 6. Procedura dodająca gościa do rezerwacji
 ```sql
 create or ALTER   PROCEDURE [dbo].[p_add_guest]
     @ReservationID INT,
@@ -828,7 +822,7 @@ BEGIN
 END;
 ```
 
-## Procedura zmieniająca rezerwację
+## 7. Procedura zmieniająca rezerwację
 ```sql
 create or ALTER   PROCEDURE [dbo].[p_alter_reservation]
     @ReservationID INT,
@@ -874,7 +868,7 @@ BEGIN
 END;
 ```
 
-## Procedura usuwająca gościa
+## 8. Procedura usuwająca gościa
 ```sql
 create or ALTER   PROCEDURE [dbo].[p_remove_guest]
     @GuestID INT
@@ -903,7 +897,7 @@ BEGIN
 END;
 ```
 
-## Procedura usuwająca gościa z atrakcji
+## 9. Procedura usuwająca gościa z atrakcji
 ```sql
 create or ALTER   PROCEDURE [dbo].[p_remove_guest_attr]
     @GuestID INT,
