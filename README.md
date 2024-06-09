@@ -354,7 +354,7 @@ from Reservations r
 ```
 
 ## Przykład użycia
-![spotcheck_przykład](przyklady/views/PaymentsInfo.png)
+![vprzyklad1](przyklady/views/PaymentsInfo.png)
 
 ## 2. Widok zapełnionych miejsc w atrakcji w stosunku do miejsc wykupionych
 ```sql
@@ -366,7 +366,7 @@ group by a.AttractionID, rd.AttendeesNumber
 ```
 
 ## Przykład użycia
-![spotcheck_przykład](spotcheck_przykład.png)
+![vprzyklad2](przyklady/views/spotcheck.png)
 
 ## 3. Widok pozostałych wolnych miejsc dla atrakcji
 ```sql
@@ -379,7 +379,7 @@ RIGHT JOIN Attractions a on a.TripID = t.TripID
 GROUP BY t.TripID, a.AttractionID, a.Spots, a.Name
 ```
 ## Przykład użycia
-![atstatus_przykład](atstatus_przykład.png)
+![vprzyklad3](przyklady/views/atstatus.png)
 
 ## 4. Widok zawierający wykaz gości
 ```sql
@@ -398,7 +398,7 @@ LEFT JOIN
     Attractions a ON gd.AttractionID = a.AttractionID AND t.TripID = a.TripID;
 ```
 ## Przykład użycia
-![guestlist_przykład](guestlist_przykład.png)
+![vprzyklad4](przyklady/views/PaymentsInfo.png)
 
 ## 5. Widok wypisujący gości atrakcji.
 ```sql
@@ -409,6 +409,8 @@ join Guests g on gd.GuestID=g.GuestID
 join Attractions a on gd.AttractionID=a.AttractionID
 )
 ```
+## Przykład użycia
+![vprzyklad5](przyklady/views/AttrInfo.png)
 
 ## 6. Widok wypisujący najważniejsze informacje o wycieczkach.
 ```sql
@@ -420,6 +422,8 @@ t.CountryID, t.StartDate, t.EndDate, t.AvailableFrom
 from Trips t join Attractions a on t.TripID=a.TripID
 )
 ```
+## Przykład użycia
+![vprzyklad6](przyklady/views/FullTripInfo.png)
 
 # 4. Funkcje
 
@@ -445,6 +449,9 @@ BEGIN
     RETURN @CalkowityKoszt;
 END;
 ```
+## Przykład użycia
+![fprzyklad1](przyklady/functions/resfullcost.png)
+
 ## 2. Funkcja wypisująca liczbę pozostałych miejsc na wycieczkę.
 ```sql
 CREATE or alter FUNCTION trip_avail(@tripID INT)
@@ -461,6 +468,8 @@ BEGIN
     RETURN @totalSpots - @reservedSpots;
 END;
 ```
+## Przykład użycia
+![fprzyklad2](przyklady/functions/tripavail.png)
 
 ## 3. Funkcja wypisująca liczbę pozostałych miejsc na atrakcję.
 ```sql
@@ -478,6 +487,8 @@ BEGIN
     RETURN @totalSpots - @reservedSpots;
 END;
 ```
+## Przykład użycia
+![fprzyklad3](przyklady/functions/attravail.png)
 
 ## 4. Funkcja wypisująca gościa i atrakcje na które się wybiera.
 ```sql
@@ -497,6 +508,8 @@ RETURN
     where gd.GuestID=@GuestID
 );
 ```
+## Przykład użycia
+![fprzyklad4](przyklady/functions/guestattr.png)
 
 ## 5. Funkcja zwracająca kwotę do zapłaty za wycieczkę wraz z atrakcjami dla gościa
 ```sql
@@ -520,34 +533,34 @@ BEGIN
     RETURN @CalkowityKoszt;
 END;
 ```
+## Przykład użycia
+![fprzyklad5](przyklady/functions/guestfullcost.png)
+
 ## 6. Funkcja zwracająca kwotę do zapłaty za wycieczkę wraz z atrakcjami za całość
 ```sql
-create or ALTER   FUNCTION [dbo].[res_full_cost](@ReservationID INT)
+create or ALTER   FUNCTION [dbo].[res_all_payments](@ReservationID INT)
 RETURNS DECIMAL(19, 2)
 AS
 BEGIN
     DECLARE @CalkowityKoszt DECIMAL(19, 2);
 
     SELECT @CalkowityKoszt = isnull((
-        SELECT r.Price*r.Spots
-        FROM Reservations r
-        WHERE r.ReservationID = @ReservationID
-        
-    ),0) + isnull((
-        SELECT SUM(rd.Price * rd.AttendeesNumber) 
-        FROM ReservationDetails rd
-        WHERE rd.ReservationID = @ReservationID
+        select sum(Amount) from Payments p
+        where ReservationID=@ReservationID
     ),0);
 
     RETURN @CalkowityKoszt;
 END;
 ```
+## Przykład użycia
+![fprzyklad6](przyklady/functions/resallpayments.png)
+
 # 5. Procedury
 
 ## 1. Procedura dodająca klienta lub firmę
 ```sql
-CREATE OR ALTER PROC p_add_customer
-@customerType CHAR(1),  -- 'P' - Private Client, 'C' - Company
+CREATE OR ALTER   PROC [dbo].[p_add_customer]
+@customerType CHAR(1),  -- 'P' for Private Client, 'C' for Company
 @countryid VARCHAR(3), 
 @firstname VARCHAR(50) = NULL, 
 @lastname VARCHAR(50) = NULL, 
@@ -558,31 +571,39 @@ AS
 BEGIN
     BEGIN TRY
         BEGIN TRANSACTION
+
+        -- Check if the CountryID exists
         IF NOT EXISTS (SELECT * FROM Countries WHERE CountryID = @countryid)
             THROW 50003, 'No country with this CountryID', 1;
 
+        -- Check if ContactNumber starts with '+'
         IF LEFT(@contactnumber, 1) <> '+'
             THROW 50003, 'ContactNumber should start with +', 1;
 
-        DECLARE @id INT;
-        SELECT @id = ISNULL(MAX(customerid),0)+1 FROM customers;
+        -- Insert into Customers table
+        INSERT INTO Customers (CountryID) VALUES (@countryid);
 
-        INSERT INTO Customers (CustomerID, CountryID) VALUES (@id, @countryid);
+        DECLARE @CustomerID INT
+        SET @CustomerID = SCOPE_IDENTITY();
+
+        -- Insert into either Companies or PrivateClients based on @customerType
         IF @customerType = 'C'
         BEGIN
+            -- Check if CompanyName is provided
             IF @companyname IS NULL
                 THROW 50003, 'CompanyName is required for companies', 1;
 
-            INSERT INTO Companies (CustomerID, CompanyName, Address, ContactNumber) 
-            VALUES (@id, @companyname, @address, @contactnumber);
+            INSERT INTO Companies (CustomerID,CompanyName, Address, ContactNumber) 
+            VALUES (@CustomerID,@companyname, @address, @contactnumber);
         END
         ELSE IF @customerType = 'P'
         BEGIN
+            -- Check if FirstName and LastName are provided
             IF @firstname IS NULL OR @lastname IS NULL
                 THROW 50003, 'FirstName and LastName are required for private clients', 1;
 
-            INSERT INTO PrivateClients (CustomerID, FirstName, LastName, Address, ContactNumber) 
-            VALUES (@id, @firstname, @lastname, @address, @contactnumber);
+            INSERT INTO PrivateClients (CustomerID,FirstName, LastName, Address, ContactNumber) 
+            VALUES (@CustomerID,@firstname, @lastname, @address, @contactnumber);
         END
         ELSE
         BEGIN
@@ -595,8 +616,10 @@ BEGIN
         ROLLBACK;
         THROW;
     END CATCH;
-END;```
+END;
 ```
+## Przykład użycia
+![pprzyklad1](przyklady/procedures/addcustomer.png)
 
 ## 2. Procedura dodająca rezerwację (bez atrakcji - te później).
 ```sql
@@ -645,6 +668,8 @@ BEGIN
     END CATCH;
 END;
 ```
+## Przykład użycia
+![pprzyklad2](przyklady/procedures/addreservation.png)
 
 ## 3. Procedura dodająca atrakcje do rezerwacji 
 ```sql
@@ -707,13 +732,24 @@ BEGIN
     END CATCH;
 END;
 ```
+## Przykład użycia
+![pprzyklad3](przyklady/procedures/addattrres.png)
 
 ## 4. Procedura wyświetlająca płatności w podanym okresie czasu
 ```sql
-CREATE OR ALTER PROCEDURE p_get_payments  @startDate DATE,  @endDate DATE
+CREATE OR ALTER   PROCEDURE [dbo].[p_get_payments_in_date_range]
+    @startDate DATE,
+    @endDate DATE
 AS
 BEGIN
-    SELECT p.PaymentID, r.CustomerID, r.ReservationID, p.PaymentDate, p.Amount, p.PaymentMethod,
+
+    SELECT 
+        p.PaymentID,
+        r.CustomerID,
+        r.ReservationID,
+        p.PaymentDate,
+        p.Amount,
+        p.PaymentMethod,
         CASE
             WHEN pc.CustomerID IS NOT NULL THEN CONCAT(pc.FirstName, ' ', pc.LastName)
             WHEN co.CustomerID IS NOT NULL THEN co.CompanyName
@@ -721,7 +757,7 @@ BEGIN
     FROM 
         Payments p
     INNER JOIN 
-        Reservation r ON p.ReservationID = r.ReservationID
+        Reservations r ON p.ReservationID = r.ReservationID
     INNER JOIN 
         Customers c ON r.CustomerID = c.CustomerID
     LEFT JOIN 
@@ -732,8 +768,11 @@ BEGIN
         p.PaymentDate BETWEEN @startDate AND @endDate
     ORDER BY 
         p.PaymentDate;
+
 END;
 ```
+## Przykład użycia
+![pprzyklad4](przyklady/procedures/getpaymentsindaterange.png)
 
 ## 5. Procedura dodająca gościa do atrakcji
 ```sql
@@ -784,6 +823,8 @@ BEGIN
     END CATCH;
 END;
 ```
+## Przykład użycia
+![pprzyklad5](przyklady/procedures/addguestattr.png)
 
 ## 6. Procedura dodająca gościa do rezerwacji
 ```sql
@@ -824,6 +865,8 @@ BEGIN
     END CATCH;
 END;
 ```
+## Przykład użycia
+![pprzyklad6](przyklady/procedures/addguest.png)
 
 ## 7. Procedura zmieniająca rezerwację
 ```sql
@@ -870,6 +913,8 @@ BEGIN
     END CATCH;
 END;
 ```
+## Przykład użycia
+![pprzyklad7](przyklady/procedures/alterreservation.png)
 
 ## 8. Procedura usuwająca gościa
 ```sql
@@ -899,6 +944,8 @@ BEGIN
     END CATCH;
 END;
 ```
+## Przykład użycia
+![pprzyklad8](przyklady/procedures/removeguest.png)
 
 ## 9. Procedura usuwająca gościa z atrakcji
 ```sql
@@ -927,4 +974,5 @@ BEGIN
     END CATCH;
 END;
 ```
-
+## Przykład użycia
+![pprzyklad9](przyklady/procedures/removeguestattr.png)
