@@ -392,6 +392,38 @@ LEFT JOIN
 ## Przykład użycia
 ![guestlist_przykład](guestlist_przykład.png)
 
+## Widok wypisujący gości atrakcji.
+```sql
+create or ALTER view [dbo].[AttrInfo] as
+(
+select g.ReservationID,a.AttractionID,a.Name,g.FirstName,g.LastName from GuestDetails gd
+join Guests g on gd.GuestID=g.GuestID
+join Attractions a on gd.AttractionID=a.AttractionID
+)
+```
+
+## Widok wypisujący najważniejsze informacje o wycieczkach.
+```sql
+create or ALTER   VIEW [dbo].[FullTripInfo] AS
+(
+select t.TripID,t.Price,dbo.trip_avail(t.TripID) as FreeTripSpots,
+a.AttractionID,a.Name,a.Price as AtPrice,dbo.attr_avail(a.AttractionID) as FreeAttractionSpots,
+t.CountryID, t.StartDate, t.EndDate, t.AvailableFrom
+from Trips t join Attractions a on t.TripID=a.TripID
+)
+```
+
+## Widok wypisujący rezerwacje, ceny wycieczek, kwotę do zapłaty, zapłacone i do zapłaty
+```sql
+create or ALTER view [dbo].[PaymentsInfo] as
+(
+select ReservationID,CustomerID, dbo.res_full_cost(ReservationID) as Price,
+dbo.res_all_payments(ReservationID) as Paid, 
+dbo.res_full_cost(ReservationID) - dbo.res_all_payments(ReservationID) as LeftToPay
+from Reservations r
+)
+```
+
 # 4. Funkcje
 
 ## Funkcja obliczająca kwotę do zapłaty za całą rezerwację wraz z atrakcjami.
@@ -450,6 +482,69 @@ BEGIN
 END;
 ```
 
+## Funkcja wypisująca gościa i atrakcje na które się wybiera.
+```sql
+create or alter FUNCTION [dbo].[guest_attr]
+(
+    @GuestID INT
+)
+RETURNS TABLE
+AS
+RETURN
+(
+    select gd.ReservationID,gd.AttractionID,rd.Price 
+    from GuestDetails gd
+    join ReservationDetails rd on 
+    rd.ReservationID=gd.ReservationID
+    and rd.AttractionID=gd.AttractionID
+    where gd.GuestID=@GuestID
+);
+```
+
+## Funkcja zwracająca kwotę do zapłaty za wycieczkę wraz z atrakcjami dla gościa
+```sql
+create or ALTER FUNCTION [dbo].[guest_full_cost](@GuestID INT, @ReservationID INT)
+RETURNS DECIMAL(19, 2)
+AS
+BEGIN
+    DECLARE @CalkowityKoszt DECIMAL(19, 2);
+
+    SELECT @CalkowityKoszt = isnull((
+        SELECT r.Price
+        FROM Reservations r
+        join Guests g on r.ReservationID=g.ReservationID 
+        WHERE g.GuestID = @GuestID and r.ReservationID=@ReservationID
+        
+    ),0) + isnull((
+        select sum(price) from dbo.guest_attr(@GuestID) 
+        where ReservationID = @ReservationID
+    ),0);
+
+    RETURN @CalkowityKoszt;
+END;
+```
+## Funkcja zwracająca kwotę do zapłaty za wycieczkę wraz z atrakcjami za całość
+```sql
+create or ALTER   FUNCTION [dbo].[res_full_cost](@ReservationID INT)
+RETURNS DECIMAL(19, 2)
+AS
+BEGIN
+    DECLARE @CalkowityKoszt DECIMAL(19, 2);
+
+    SELECT @CalkowityKoszt = isnull((
+        SELECT r.Price*r.Spots
+        FROM Reservations r
+        WHERE r.ReservationID = @ReservationID
+        
+    ),0) + isnull((
+        SELECT SUM(rd.Price * rd.AttendeesNumber) 
+        FROM ReservationDetails rd
+        WHERE rd.ReservationID = @ReservationID
+    ),0);
+
+    RETURN @CalkowityKoszt;
+END;
+```
 # 5. Procedury
 
 ## Procedura dodająca klienta lub firmę
@@ -642,3 +737,197 @@ BEGIN
         p.PaymentDate;
 END;
 ```
+
+## Procedura dodająca gościa do atrakcji
+```sql
+CREATE OR ALTER   PROCEDURE [dbo].[p_add_guest_attr]
+    @ReservationID INT,
+    @AttractionID INT,
+    @GuestID INT
+AS
+BEGIN
+    BEGIN TRY
+        BEGIN TRANSACTION
+
+        -- Sprawdzenie czy ReservationID i AttractionID istnieją
+        IF NOT EXISTS (SELECT * FROM Reservations WHERE ReservationID = @ReservationID)
+            THROW 50001, 'No reservation with this ReservationID.', 1;
+        
+        IF NOT EXISTS (SELECT * FROM ReservationDetails WHERE AttractionID = @AttractionID and ReservationID = @ReservationID)
+            THROW 50002, 'No attraction reserved with this AttractionID.', 1;
+
+        IF NOT EXISTS (SELECT * FROM Guests WHERE GuestID = @GuestID)
+            THROW 50003, 'No guest with this GuestID.', 1;
+
+        -- Pobranie liczby miejsc zarezerwowanych na atrakcję
+        DECLARE @ReservedSpots INT;
+        SELECT @ReservedSpots = AttendeesNumber 
+        FROM ReservationDetails 
+        WHERE ReservationID = @ReservationID AND AttractionID = @AttractionID;
+
+        -- Obliczenie liczby gości przypisanych do tej rezerwacji atrakcji
+        DECLARE @GuestCount INT;
+        SELECT @GuestCount = COUNT(*) 
+        FROM GuestDetails 
+        WHERE ReservationID = @ReservationID AND AttractionID = @AttractionID;
+
+        -- Sprawdzenie dostępnych miejsc na atrakcję
+        IF @GuestCount >= @ReservedSpots
+            THROW 50004, 'No available spots for this attraction.', 1;
+
+        -- Dodanie nowego gościa do rezerwacji atrakcji
+        INSERT INTO GuestDetails (GuestID, ReservationID, AttractionID)
+        VALUES (@GuestID, @ReservationID, @AttractionID);
+
+        COMMIT;
+    END TRY
+    BEGIN CATCH
+        ROLLBACK;
+        THROW;
+    END CATCH;
+END;
+```
+
+## Procedura dodająca gościa do rezerwacji
+```sql
+create or ALTER   PROCEDURE [dbo].[p_add_guest]
+    @ReservationID INT,
+    @FirstName VARCHAR(50),
+    @LastName VARCHAR(50)
+AS
+BEGIN
+    BEGIN TRY
+        BEGIN TRANSACTION
+
+        -- Sprawdzenie czy ReservationID istnieje
+        IF NOT EXISTS (SELECT * FROM Reservations WHERE ReservationID = @ReservationID)
+            THROW 50001, 'No reservation with this ReservationID.', 1;
+
+        -- Pobranie liczby miejsc zarezerwowanych w rezerwacji
+        DECLARE @ReservedSpots INT;
+        SELECT @ReservedSpots = Spots FROM Reservations WHERE ReservationID = @ReservationID;
+
+        -- Obliczenie liczby gości przypisanych do rezerwacji
+        DECLARE @GuestCount INT;
+        SELECT @GuestCount = COUNT(*) FROM Guests WHERE ReservationID = @ReservationID;
+
+        -- Sprawdzenie dostępnych miejsc
+        IF @GuestCount >= @ReservedSpots
+            THROW 50002, 'No available spots for this reservation.', 1;
+
+        -- Dodanie nowego gościa
+        INSERT INTO Guests (ReservationID, FirstName, LastName)
+        VALUES (@ReservationID, @FirstName, @LastName);
+
+        COMMIT;
+    END TRY
+    BEGIN CATCH
+        ROLLBACK;
+        THROW;
+    END CATCH;
+END;
+```
+
+## Procedura zmieniająca rezerwację
+```sql
+create or ALTER   PROCEDURE [dbo].[p_alter_reservation]
+    @ReservationID INT,
+    @CustomerID INT,
+    @Spots INT
+AS
+BEGIN
+    BEGIN TRY
+        BEGIN TRANSACTION
+        IF NOT EXISTS (SELECT * FROM Reservations WHERE ReservationID = @ReservationID)
+            THROW 50001, 'No reservation with this ReservationID.', 1;
+
+        DECLARE @TripID INT;
+        SELECT @TripID = TripID FROM Reservations WHERE ReservationID = @ReservationID;
+        DECLARE @TripSpots INT;
+        SELECT @TripSpots = Spots FROM Trips WHERE TripID = @TripID;
+        DECLARE @ReservedSpots INT;
+        SELECT @ReservedSpots = ISNULL(SUM(Spots), 0) FROM Reservations WHERE TripID = @TripID;
+        DECLARE @ThisReservedSpots INT;
+        SELECT @ThisReservedSpots = Spots FROM Reservations WHERE ReservationID = @ReservationID;
+        IF @Spots > (@TripSpots - @ReservedSpots + @ThisReservedSpots)
+            THROW 50002, 'Not enough available spots for this trip.', 1;
+
+        declare @today date;
+        select @today = getdate()
+
+        IF @today < (SELECT AvailableFrom FROM Trips WHERE TripID = @TripID)
+            THROW 50003, 'You cannot edit a reservation for this trip yet. :(', 1;
+        IF DATEDIFF(DAY, @today, (SELECT StartDate FROM Trips WHERE TripID = @TripID)) < 7
+            THROW 50004, 'Time to edit reservations for this trip is over. :(', 1;
+
+        DECLARE @TripPrice DECIMAL(19, 2);
+        SELECT @TripPrice = Price FROM Trips WHERE TripID = @TripID;
+
+        UPDATE Reservations set Spots=@Spots, ReservationDate=getdate(), Price=@TripPrice where ReservationID=@ReservationID
+
+        COMMIT;
+    END TRY
+    BEGIN CATCH
+        ROLLBACK;
+        THROW;
+    END CATCH;
+END;
+```
+
+## Procedura usuwająca gościa
+```sql
+create or ALTER   PROCEDURE [dbo].[p_remove_guest]
+    @GuestID INT
+AS
+BEGIN
+    BEGIN TRY
+        BEGIN TRANSACTION
+
+        -- Sprawdzenie czy GuestID, ReservationID i AttractionID istnieją
+        IF NOT EXISTS (SELECT * FROM Guests WHERE GuestID = @GuestID)
+            THROW 50001, 'No guest found with this GuestID.', 1;
+
+        -- Usunięcie gościa z tabeli GuestDetails
+        DELETE FROM GuestDetails 
+        WHERE GuestID = @GuestID;
+
+        DELETE FROM Guests
+        WHERE GuestID = @GuestID;
+
+        COMMIT;
+    END TRY
+    BEGIN CATCH
+        ROLLBACK;
+        THROW;
+    END CATCH;
+END;
+```
+
+## Procedura usuwająca gościa z atrakcji
+```sql
+create or ALTER   PROCEDURE [dbo].[p_remove_guest_attr]
+    @GuestID INT,
+    @ReservationID INT,
+    @AttractionID INT
+AS
+BEGIN
+    BEGIN TRY
+        BEGIN TRANSACTION
+
+        -- Sprawdzenie czy GuestID, ReservationID i AttractionID istnieją
+        IF NOT EXISTS (SELECT * FROM GuestDetails WHERE GuestID = @GuestID AND ReservationID = @ReservationID AND AttractionID = @AttractionID)
+            THROW 50001, 'No guest found with this GuestID, ReservationID, and AttractionID.', 1;
+
+        -- Usunięcie gościa z tabeli GuestDetails
+        DELETE FROM GuestDetails 
+        WHERE GuestID = @GuestID AND ReservationID = @ReservationID AND AttractionID = @AttractionID;
+
+        COMMIT;
+    END TRY
+    BEGIN CATCH
+        ROLLBACK;
+        THROW;
+    END CATCH;
+END;
+```
+
