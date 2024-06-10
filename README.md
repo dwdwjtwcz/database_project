@@ -613,7 +613,10 @@ BEGIN
         COMMIT;
     END TRY
     BEGIN CATCH
-        ROLLBACK;
+        IF XACT_STATE() <> 0
+        BEGIN
+            ROLLBACK TRANSACTION;
+        END;
         THROW;
     END CATCH;
 END;
@@ -663,7 +666,10 @@ BEGIN
         COMMIT;
     END TRY
     BEGIN CATCH
-        ROLLBACK;
+        IF XACT_STATE() <> 0
+        BEGIN
+            ROLLBACK TRANSACTION;
+        END;
         THROW;
     END CATCH;
 END;
@@ -727,7 +733,10 @@ BEGIN
         COMMIT;
     END TRY
     BEGIN CATCH
-        ROLLBACK;
+        IF XACT_STATE() <> 0
+        BEGIN
+            ROLLBACK TRANSACTION;
+        END;
         THROW;
     END CATCH;
 END;
@@ -818,7 +827,10 @@ BEGIN
         COMMIT;
     END TRY
     BEGIN CATCH
-        ROLLBACK;
+        IF XACT_STATE() <> 0
+        BEGIN
+            ROLLBACK TRANSACTION;
+        END;
         THROW;
     END CATCH;
 END;
@@ -860,7 +872,10 @@ BEGIN
         COMMIT;
     END TRY
     BEGIN CATCH
-        ROLLBACK;
+        IF XACT_STATE() <> 0
+        BEGIN
+            ROLLBACK TRANSACTION;
+        END;
         THROW;
     END CATCH;
 END;
@@ -908,7 +923,10 @@ BEGIN
         COMMIT;
     END TRY
     BEGIN CATCH
-        ROLLBACK;
+        IF XACT_STATE() <> 0
+        BEGIN
+            ROLLBACK TRANSACTION;
+        END;
         THROW;
     END CATCH;
 END;
@@ -939,7 +957,10 @@ BEGIN
         COMMIT;
     END TRY
     BEGIN CATCH
-        ROLLBACK;
+        IF XACT_STATE() <> 0
+        BEGIN
+            ROLLBACK TRANSACTION;
+        END;
         THROW;
     END CATCH;
 END;
@@ -969,7 +990,10 @@ BEGIN
         COMMIT;
     END TRY
     BEGIN CATCH
-        ROLLBACK;
+        IF XACT_STATE() <> 0
+        BEGIN
+            ROLLBACK TRANSACTION;
+        END;
         THROW;
     END CATCH;
 END;
