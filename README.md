@@ -1000,3 +1000,41 @@ END;
 ```
 ## Przykład użycia
 ![pprzyklad9](przyklady/procedures/removeguestattr.png)
+
+## 10. Procedura usuwająca rezerwację
+```sql
+create or ALTER   PROCEDURE [dbo].[p_remove_reservation]
+    @ReservationID INT
+AS
+BEGIN
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        IF NOT EXISTS (SELECT * FROM Reservations WHERE ReservationID = @ReservationID)
+            THROW 50001, 'No reservation with this ReservationID. :(', 1;
+
+        DECLARE @today DATE;
+        SELECT @today = GETDATE();
+
+        DECLARE @TripID INT;
+        SELECT @TripID = (SELECT TripID FROM Reservations WHERE ReservationID=@ReservationID)
+
+        IF DATEDIFF(DAY, @today, (SELECT StartDate FROM Trips WHERE TripID = @TripID)) < 7
+            THROW 50004, 'Time to edit reservations for this trip is over. :(', 1;
+
+        UPDATE Reservations SET IsActive = 0 WHERE ReservationID = @ReservationID;
+
+        COMMIT;
+    END TRY
+    BEGIN CATCH
+        IF XACT_STATE() <> 0
+        BEGIN
+            ROLLBACK TRANSACTION;
+        END;
+        THROW;
+    END CATCH;
+END;
+```
+
+## Przykład użycia
+![pprzyklad10](przyklady/procedures/removereservation.png)
