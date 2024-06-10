@@ -398,7 +398,7 @@ LEFT JOIN
     Attractions a ON gd.AttractionID = a.AttractionID AND t.TripID = a.TripID;
 ```
 ## Przykład użycia
-![vprzyklad4](przyklady/views/PaymentsInfo.png)
+![vprzyklad4](przyklady/views/guestlist.png)
 
 ## 5. Widok wypisujący gości atrakcji.
 ```sql
