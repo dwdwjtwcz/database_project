@@ -1061,4 +1061,5 @@ END;
 - zaktualizować opis i kody tabel w readme
 - dodać sprawdzenie limitu 7 dni w remove guest i remove attr guest
 - dodać agenta albo triggera żeby usuwał rezerwacje nieopłacone i bez/z niewystarczającą liczbą gości
+- dodać współpracę z listą gości do alter reservation
 
