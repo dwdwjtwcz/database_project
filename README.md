@@ -28,7 +28,13 @@
     - [4. Widok zawierający wykaz gości](#4-widok-zawierający-wykaz-gości)
     - [5. Widok wypisujący gości atrakcji.](#5-widok-wypisujący-gości-atrakcji)
     - [6. Widok wypisujący najważniejsze informacje o wycieczkach.](#6-widok-wypisujący-najważniejsze-informacje-o-wycieczkach)
-
+- [4. Funkcje](#4-funkcje)
+    - [1. Funkcja obliczająca kwotę do zapłaty za całą rezerwację wraz z atrakcjami.](#1-funkcja-obliczająca-kwotę-do-zapłaty-za-całą-rezerwację-wraz-z-atrakcjami)
+    - [2. Funkcja wypisująca liczbę pozostałych miejsc na wycieczkę.](#2-funkcja-wypisująca-liczbę-pozostałych-miejsc-na-wycieczkę)
+    - [3. Funkcja wypisująca liczbę pozostałych miejsc na atrakcję.](#3-funkcja-wypisująca-liczbę-pozostałych-miejsc-na-atrakcję)
+    - [4. Funkcja wypisująca gościa i atrakcje na które się wybiera.](#4-funkcja-wypisująca-gościa-i-atrakcje-na-które-się-wybiera)
+    - [5. Funkcja zwracająca kwotę do zapłaty za wycieczkę wraz z atrakcjami dla gościa](#5-funkcja-zwracająca-kwotę-do-zapłaty-za-wycieczkę-wraz-z-atrakcjami-dla-gościa)
+    - [6. Funkcja zwracająca kwotę do zapłaty za wycieczkę wraz z atrakcjami za całość](#6-funkcja-zwracająca-kwotę-do-zapłaty-za-wycieczkę-wraz-z-atrakcjami-za-całość)
 ---
 
 # 1.	Wymagania i funkcje systemu
