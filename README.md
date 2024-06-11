@@ -358,7 +358,7 @@ from Reservations r
 
 ## 2. Widok zapełnionych miejsc w atrakcji w stosunku do miejsc wykupionych
 ```sql
-ALTER   view [dbo].[SpotCheck] as
+CREATE OR ALTER view [dbo].[SpotCheck] as
 select a.AttractionID, count(gd.GuestID) as PlacesTaken, isnull(rd.AttendeesNumber,0) as PlacesReserved from Attractions a
 left join ReservationDetails rd on rd.AttractionID=a.AttractionID
 left join GuestDetails gd on rd.ReservationID=gd.ReservationID
@@ -371,13 +371,14 @@ group by a.AttractionID, rd.AttendeesNumber
 
 ## 3. Widok pozostałych wolnych miejsc dla atrakcji
 ```sql
-CREATE VIEW atstatus AS
-SELECT t.TripID, a.AttractionID, a.Name as AttractionName, (isnull(a.Spots - sum(rd.AttendeesNumber), a.Spots)) as FreeSpots
-FROM Reservations r
-JOIN ReservationDetails rd on r.ReservationID = rd.ReservationID
-RIGHT JOIN Trips t on r.TripID = t.TripID
-RIGHT JOIN Attractions a on a.TripID = t.TripID
-GROUP BY t.TripID, a.AttractionID, a.Spots, a.Name
+CREATE OR ALTER VIEW [dbo].[atstatus] AS
+SELECT t.TripID, a.AttractionID, a.Name as AttractionName, 
+       ISNULL(a.Spots - SUM(ISNULL(rd.AttendeesNumber, 0)), a.Spots) as FreeSpots
+FROM Trips t
+LEFT JOIN Attractions a on t.TripID = a.TripID
+LEFT JOIN Reservations r on t.TripID = r.TripID
+LEFT JOIN ReservationDetails rd on r.ReservationID = rd.ReservationID AND a.AttractionID = rd.AttractionID
+GROUP BY t.TripID, a.AttractionID, a.Spots, a.Name;
 ```
 ## Przykład użycia
 ![vprzyklad3](przyklady/views/atstatus.png)
