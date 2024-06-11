@@ -1040,3 +1040,9 @@ END;
 
 ## Przykład użycia
 ![pprzyklad10](przyklady/procedures/removereservation.png)
+
+# Do zrobienia
+- zaktualizować opis i kody tabel w readme
+- dodać sprawdzenie limitu 7 dni w remove guest i remove attr guest
+- dodać agenta albo triggera żeby usuwał rezerwacje nieopłacone i bez/z niewystarczającą liczbą gości
+
