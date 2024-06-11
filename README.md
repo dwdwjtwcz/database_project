@@ -6,7 +6,23 @@
 
 **Autorzy:** Mikołaj Durkot, Jakub Pomorski, Dawid Wójtowicz
 
---- 
+---
+
+- [1. Wymagania i funkcje systemu](#1-wymagania-i-funkcje-systemu)
+- [2. Baza danych](#2-baza-danych)
+    - [Schemat bazy danych](#schemat-bazy-danych)
+    - [Opis poszczególnych tabel](#opis-poszczególnych-tabel)
+      - [Attractions](#attractions)
+      - [Companies](#companies)
+      - [Countries](#countries)
+      - [Customers](#customers)
+      - [GuestDetails](#guestdetails)
+      - [Guests](#guests)
+      - [Trips](#trips)
+      - [ReservationDetails](#reservationdetails)
+      - [Reservation](#reservation)
+
+---
 
 # 1.	Wymagania i funkcje systemu
 
