@@ -358,11 +358,12 @@ from Reservations r
 
 ## 2. Widok zapełnionych miejsc w atrakcji w stosunku do miejsc wykupionych
 ```sql
-create or alter view SpotCheck as
+ALTER   view [dbo].[SpotCheck] as
 select a.AttractionID, count(gd.GuestID) as PlacesTaken, isnull(rd.AttendeesNumber,0) as PlacesReserved from Attractions a
-full join ReservationDetails rd on rd.AttractionID=a.AttractionID
-full join GuestDetails gd on rd.ReservationID=gd.ReservationID
+left join ReservationDetails rd on rd.AttractionID=a.AttractionID
+left join GuestDetails gd on rd.ReservationID=gd.ReservationID
 group by a.AttractionID, rd.AttendeesNumber
+
 ```
 
 ## Przykład użycia
