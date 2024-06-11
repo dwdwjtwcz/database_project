@@ -35,6 +35,18 @@
     - [4. Funkcja wypisująca gościa i atrakcje na które się wybiera.](#4-funkcja-wypisująca-gościa-i-atrakcje-na-które-się-wybiera)
     - [5. Funkcja zwracająca kwotę do zapłaty za wycieczkę wraz z atrakcjami dla gościa](#5-funkcja-zwracająca-kwotę-do-zapłaty-za-wycieczkę-wraz-z-atrakcjami-dla-gościa)
     - [6. Funkcja zwracająca kwotę do zapłaty za wycieczkę wraz z atrakcjami za całość](#6-funkcja-zwracająca-kwotę-do-zapłaty-za-wycieczkę-wraz-z-atrakcjami-za-całość)
+- [5. Procedury](#5-procedury)
+    - [1. Procedura dodająca klienta lub firmę](#1-procedura-dodająca-klienta-lub-firmę)
+    - [2. Procedura dodająca rezerwację (bez atrakcji - te później).](#2-procedura-dodająca-rezerwację-bez-atrakcji---te-później)
+    - [3. Procedura dodająca atrakcje do rezerwacji](#3-procedura-dodająca-atrakcje-do-rezerwacji)
+    - [4. Procedura wyświetlająca płatności w podanym okresie czasu](#4-procedura-wyświetlająca-płatności-w-podanym-okresie-czasu)
+    - [5. Procedura dodająca gościa do atrakcji](#5-procedura-dodająca-gościa-do-atrakcji)
+    - [6. Procedura dodająca gościa do rezerwacji](#6-procedura-dodająca-gościa-do-rezerwacji)
+    - [7. Procedura zmieniająca rezerwację](#7-procedura-zmieniająca-rezerwację)
+    - [8. Procedura usuwająca gościa](#8-procedura-usuwająca-gościa)
+    - [9. Procedura usuwająca gościa z atrakcji](#9-procedura-usuwająca-gościa-z-atrakcji)
+    - [10. Procedura usuwająca rezerwację](#10-procedura-usuwająca-rezerwację)
+- [Do zrobienia](#do-zrobienia)
 ---
 
 # 1.	Wymagania i funkcje systemu
