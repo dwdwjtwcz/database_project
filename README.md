@@ -1086,5 +1086,7 @@ END;
 - zaktualizować opis i kody tabel w readme
 - dodać sprawdzenie limitu 7 dni w remove guest i remove attr guest
 - dodać agenta albo triggera żeby usuwał rezerwacje nieopłacone i bez/z niewystarczającą liczbą gości
-- dodać współpracę z listą gości do alter reservation
+- dodać współpracę z listą gości do alter reservation (nie można zmniejszyć liczby miejsc, gdy jest więcej gości)
+- dodać tripid do widoku z płatnościami i spotcheck
+- uwzględnić IsActive w procedurach
 
