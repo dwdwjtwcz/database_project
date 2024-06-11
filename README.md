@@ -21,6 +21,13 @@
       - [Trips](#trips)
       - [ReservationDetails](#reservationdetails)
       - [Reservation](#reservation)
+- [3. Widoki](#3-widoki)
+    - [1. Widok wypisujący rezerwacje, ceny wycieczek, kwotę do zapłaty, zapłacone i do zapłaty](#1-widok-wypisujący-rezerwacje-ceny-wycieczek-kwotę-do-zapłaty-zapłacone-i-do-zapłaty)
+    - [2. Widok zapełnionych miejsc w atrakcji w stosunku do miejsc wykupionych](#2-widok-zapełnionych-miejsc-w-atrakcji-w-stosunku-do-miejsc-wykupionych)
+    - [3. Widok pozostałych wolnych miejsc dla atrakcji](#3-widok-pozostałych-wolnych-miejsc-dla-atrakcji)
+    - [4. Widok zawierający wykaz gości](#4-widok-zawierający-wykaz-gości)
+    - [5. Widok wypisujący gości atrakcji.](#5-widok-wypisujący-gości-atrakcji)
+    - [6. Widok wypisujący najważniejsze informacje o wycieczkach.](#6-widok-wypisujący-najważniejsze-informacje-o-wycieczkach)
 
 ---
 
