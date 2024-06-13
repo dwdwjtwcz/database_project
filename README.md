@@ -393,9 +393,9 @@ ALTER TABLE Payments ADD CONSTRAINT Payments_Reservations
 
 ## 1. Widok wypisujący rezerwacje, ceny wycieczek, kwotę do zapłaty, zapłacone i do zapłaty
 ```sql
-create or ALTER view [dbo].[PaymentsInfo] as
+create or ALTER view PaymentsInfo as
 (
-select ReservationID,CustomerID, dbo.res_full_cost(ReservationID) as Price,
+select IsActive,ReservationID,TripID,CustomerID, dbo.res_full_cost(ReservationID) as Price,
 dbo.res_all_payments(ReservationID) as Paid, 
 dbo.res_full_cost(ReservationID) - dbo.res_all_payments(ReservationID) as LeftToPay
 from Reservations r
@@ -407,11 +407,14 @@ from Reservations r
 
 ## 2. Widok zapełnionych miejsc w atrakcji w stosunku do miejsc wykupionych
 ```sql
-CREATE OR ALTER view [dbo].[SpotCheck] as
-select a.AttractionID, count(gd.GuestID) as PlacesTaken, isnull(rd.AttendeesNumber,0) as PlacesReserved from Attractions a
+CREATE OR ALTER view SpotCheck as
+select t.TripID,a.AttractionID, count(gd.GuestID) as PlacesTaken,
+isnull(rd.AttendeesNumber,0) as PlacesReserved from Attractions a
 left join ReservationDetails rd on rd.AttractionID=a.AttractionID
-left join GuestDetails gd on rd.ReservationID=gd.ReservationID
-group by a.AttractionID, rd.AttendeesNumber
+and rd.ReservationID not in (select ReservationID from Reservations where IsActive=0)
+left join GuestDetails gd on rd.ReservationID=gd.ReservationID and rd.AttractionID=gd.AttractionID
+join Trips t on t.TripID=a.TripID
+group by a.AttractionID, rd.AttendeesNumber,t.TripID
 
 ```
 
@@ -420,12 +423,12 @@ group by a.AttractionID, rd.AttendeesNumber
 
 ## 3. Widok pozostałych wolnych miejsc dla atrakcji
 ```sql
-CREATE OR ALTER VIEW [dbo].[atstatus] AS
+CREATE OR ALTER VIEW atstatus AS
 SELECT t.TripID, a.AttractionID, a.Name as AttractionName, 
        ISNULL(a.Spots - SUM(ISNULL(rd.AttendeesNumber, 0)), a.Spots) as FreeSpots
 FROM Trips t
 LEFT JOIN Attractions a on t.TripID = a.TripID
-LEFT JOIN Reservations r on t.TripID = r.TripID
+LEFT JOIN Reservations r on t.TripID = r.TripID and r.ReservationID not in (select ReservationID from Reservations where IsActive=0)
 LEFT JOIN ReservationDetails rd on r.ReservationID = rd.ReservationID AND a.AttractionID = rd.AttractionID
 GROUP BY t.TripID, a.AttractionID, a.Spots, a.Name;
 ```
@@ -434,30 +437,25 @@ GROUP BY t.TripID, a.AttractionID, a.Spots, a.Name;
 
 ## 4. Widok zawierający wykaz gości
 ```sql
-CREATE VIEW GuestList AS
-SELECT
-    g.GuestID, g.FirstName, g.LastName, t.TripID, g.ReservationID, t.CountryID, t.StartDate, t.EndDate, COALESCE(CAST(a.AttractionID as varchar), 'None') as AttractionID, ISNULL(a.Name, 'None') as AttractionName
-FROM
-    Guests g
-JOIN
-    Reservations r ON g.ReservationID = r.ReservationID
-JOIN
-    Trips t ON r.TripID = t.TripID
-LEFT JOIN
-    GuestDetails gd ON g.GuestID = gd.GuestID AND g.ReservationID = gd.ReservationID
-LEFT JOIN
-    Attractions a ON gd.AttractionID = a.AttractionID AND t.TripID = a.TripID;
+CREATE or ALTER VIEW GuestList AS
+SELECT g.GuestID, g.FirstName, g.LastName, t.TripID, g.ReservationID, t.CountryID,
+t.StartDate, t.EndDate, COALESCE(CAST(a.AttractionID as varchar), 'None') as AttractionID,
+ISNULL(a.Name, 'None') as AttractionName FROM Guests g JOIN
+Reservations r ON g.ReservationID = r.ReservationID and r.ReservationID not in (select ReservationID from Reservations where IsActive=0)
+JOIN Trips t ON r.TripID = t.TripID LEFT JOIN GuestDetails gd ON g.GuestID = gd.GuestID AND g.ReservationID = gd.ReservationID
+LEFT JOIN Attractions a ON gd.AttractionID = a.AttractionID AND t.TripID = a.TripID;
 ```
 ## Przykład użycia
 ![vprzyklad4](przyklady/views/guestlist.png)
 
 ## 5. Widok wypisujący gości atrakcji.
 ```sql
-create or ALTER view [dbo].[AttrInfo] as
+create or ALTER view AttrInfo as
 (
 select g.ReservationID,a.AttractionID,a.Name,g.FirstName,g.LastName from GuestDetails gd
 join Guests g on gd.GuestID=g.GuestID
 join Attractions a on gd.AttractionID=a.AttractionID
+where gd.ReservationID not in (select ReservationID from Reservations where IsActive=0)
 )
 ```
 ## Przykład użycia
@@ -465,7 +463,7 @@ join Attractions a on gd.AttractionID=a.AttractionID
 
 ## 6. Widok wypisujący najważniejsze informacje o wycieczkach.
 ```sql
-create or ALTER   VIEW [dbo].[FullTripInfo] AS
+create or ALTER VIEW FullTripInfo AS
 (
 select t.TripID,t.Price,dbo.trip_avail(t.TripID) as FreeTripSpots,
 a.AttractionID,a.Name,a.Price as AtPrice,dbo.attr_avail(a.AttractionID) as FreeAttractionSpots,
@@ -480,7 +478,7 @@ from Trips t join Attractions a on t.TripID=a.TripID
 
 ## 1. Funkcja obliczająca kwotę do zapłaty za całą rezerwację wraz z atrakcjami.
 ```sql
-CREATE or alter FUNCTION dbo.res_full_cost(@ReservationID INT)
+CREATE or ALTER FUNCTION [dbo].[res_full_cost](@ReservationID INT)
 RETURNS DECIMAL(19, 2)
 AS
 BEGIN
@@ -505,16 +503,17 @@ END;
 
 ## 2. Funkcja wypisująca liczbę pozostałych miejsc na wycieczkę.
 ```sql
-CREATE or alter FUNCTION trip_avail(@tripID INT)
+CREATE or ALTER FUNCTION [dbo].[trip_avail](@tripID INT)
 RETURNS INT
 AS
 BEGIN
     DECLARE @totalSpots INT;
     DECLARE @reservedSpots INT;
     
-    SELECT @totalSpots = Spots FROM Trips WHERE TripID = tripID;
+    SELECT @totalSpots = Spots FROM Trips WHERE TripID = @tripID;
     
-    SELECT @reservedSpots = isnull(SUM(Spots),0) FROM Reservations WHERE TripID = tripID;
+    SELECT @reservedSpots = isnull(sum(Spots),0) FROM Reservations WHERE TripID = @tripID
+    and ReservationID not in (select ReservationID from Reservations where IsActive=0)
     
     RETURN @totalSpots - @reservedSpots;
 END;
@@ -524,7 +523,7 @@ END;
 
 ## 3. Funkcja wypisująca liczbę pozostałych miejsc na atrakcję.
 ```sql
-CREATE or alter FUNCTION attr_avail(@attractionID INT)
+CREATE or ALTER FUNCTION [dbo].[attr_avail](@attractionID INT)
 RETURNS INT
 AS
 BEGIN
@@ -533,7 +532,8 @@ BEGIN
     
     SELECT @totalSpots = Spots FROM Attractions WHERE AttractionID = @attractionID;
     
-    SELECT @reservedSpots = isnull(SUM(AttendeesNumber),0) FROM ReservationDetails WHERE AttractionID = @attractionID;
+    SELECT @reservedSpots = isnull(SUM(AttendeesNumber),0) FROM ReservationDetails WHERE AttractionID = @attractionID 
+    and ReservationID not in (select ReservationID from Reservations where IsActive=0);
     
     RETURN @totalSpots - @reservedSpots;
 END;
@@ -543,7 +543,7 @@ END;
 
 ## 4. Funkcja wypisująca gościa i atrakcje na które się wybiera.
 ```sql
-create or alter FUNCTION [dbo].[guest_attr]
+create or ALTER FUNCTION [dbo].[guest_attr]
 (
     @GuestID INT
 )
@@ -589,7 +589,7 @@ END;
 
 ## 6. Funkcja zwracająca kwotę do zapłaty za wycieczkę wraz z atrakcjami za całość
 ```sql
-create or ALTER   FUNCTION [dbo].[res_all_payments](@ReservationID INT)
+create or ALTER FUNCTION [dbo].[res_all_payments](@ReservationID INT)
 RETURNS DECIMAL(19, 2)
 AS
 BEGIN
@@ -610,7 +610,7 @@ END;
 
 ## 1. Procedura dodająca klienta lub firmę
 ```sql
-CREATE OR ALTER   PROC [dbo].[p_add_customer]
+CREATE OR ALTER PROC p_add_customer
 @customerType CHAR(1),  -- 'P' for Private Client, 'C' for Company
 @countryid VARCHAR(3), 
 @firstname VARCHAR(50) = NULL, 
@@ -675,7 +675,7 @@ END;
 ## Przykład użycia
 ![pprzyklad1](przyklady/procedures/addcustomer.png)
 
-## 2. Procedura dodająca rezerwację (bez atrakcji - te później).
+## 2. Procedura dodająca rezerwację (bez atrakcji).
 ```sql
 CREATE OR ALTER PROCEDURE p_add_reservation
     @CustomerID INT,
@@ -685,13 +685,20 @@ AS
 BEGIN
     BEGIN TRY
         BEGIN TRANSACTION
+
+        -- Sprawdzenie czy TripID istnieje
         IF NOT EXISTS (SELECT * FROM Trips WHERE TripID = @TripID)
             THROW 50001, 'No trip with this TripID.', 1;
 
+        -- Pobranie liczby miejsc w wycieczce
         DECLARE @TripSpots INT;
         SELECT @TripSpots = Spots FROM Trips WHERE TripID = @TripID;
+
+        -- Obliczenie liczby zarezerwowanych miejsc
         DECLARE @ReservedSpots INT;
         SELECT @ReservedSpots = ISNULL(SUM(Spots), 0) FROM Reservations WHERE TripID = @TripID;
+
+        -- Sprawdzenie dostępnych miejsc
         IF @Spots > (@TripSpots - @ReservedSpots)
             THROW 50002, 'Not enough available spots for this trip.', 1;
 
@@ -700,19 +707,17 @@ BEGIN
 
         IF @today < (SELECT AvailableFrom FROM Trips WHERE TripID = @TripID)
             THROW 50003, 'You cannot make a reservation for this trip yet. :(', 1;
+
         IF DATEDIFF(DAY, @today, (SELECT StartDate FROM Trips WHERE TripID = @TripID)) < 7
             THROW 50004, 'Time to make reservations for this trip is over. :(', 1;
 
+        -- Pobranie ceny wycieczki
         DECLARE @TripPrice DECIMAL(19, 2);
         SELECT @TripPrice = Price FROM Trips WHERE TripID = @TripID;
 
-        declare @id int;
-        select @id = isnull(max(ReservationID),0)+1 from Reservations;
-
-        INSERT INTO Reservations (ReservationID, CustomerID, TripID, Spots, ReservationDate, Price)
-        VALUES (@id, @CustomerID, @TripID, @Spots, @today, @TripPrice);
-
-        select dbo.res_full_cost(@id) as topay
+        -- Dodanie nowej rezerwacji
+        INSERT INTO Reservations (CustomerID, TripID, Spots, ReservationDate, Price)
+        VALUES (@CustomerID, @TripID, @Spots, @today, @TripPrice);
 
         COMMIT;
     END TRY
@@ -741,23 +746,37 @@ BEGIN
 
         -- Sprawdzenie, czy istnieje rezerwacja o podanym ID
         IF @AttendeesNumber < 1
-            THROW 50005, 'You cannot make a reservation with zero or less people.', 1;
+            THROW 50001, 'You cannot make a reservation with zero or less people.', 1;
 
         -- Sprawdzenie, czy istnieje rezerwacja o podanym ID
         IF NOT EXISTS (SELECT * FROM Reservations WHERE ReservationID = @ReservationID)
-            THROW 50001, 'No reservation with this ReservationID.', 1;
+            THROW 50002, 'No reservation with this ReservationID.', 1;
 
         -- Sprawdzenie, czy istnieje atrakcja o podanym ID
         IF NOT EXISTS (SELECT * FROM Attractions WHERE AttractionID = @AttractionID)
-            THROW 50002, 'No attraction with this AttractionID.', 1;
+            THROW 50003, 'No attraction with this AttractionID.', 1;
 
         -- Pobranie liczby miejsc zarezerwowanych na wycieczkę powiązaną z rezerwacją
         DECLARE @ReservedSpots INT;
         SELECT @ReservedSpots = Spots FROM Reservations WHERE ReservationID = @ReservationID;
 
+        -- sprawdzenie dodanie TRIPID
+        DECLARE @TripID INT;
+        select @TripID = TripID from Reservations where ReservationID=@ReservationID;
+        
+        -- sprawdzenie dodanie TRIPID
+        DECLARE @TripDate DATE;
+        select @TripDate = StartDate from Trips where TripID=@TripID;
+
         -- sprawdzenie, czy jest wiecej na atrakcje niz na calego tripa
         IF @AttendeesNumber > @ReservedSpots
-            THROW 50003, 'You cannot take more people to an attraction than the whole trip.', 1;
+            THROW 50004, 'You cannot take more people to an attraction than the whole trip.', 1;
+
+        IF DATEDIFF(DAY, getdate(), @TripDate) < 7
+            THROW 50005, 'Cannot make reservation, time to do that have ended.', 1;
+
+        IF (select Isactive from Reservations where ReservationID=@ReservationID) = 0
+            THROW 50006, 'Reservation is not active.', 1;
 
         -- Pobranie liczby miejsc maksymalnych na atrakcji
         DECLARE @AllSpots INT;
@@ -767,11 +786,11 @@ BEGIN
         DECLARE @ReservedAttractionSpots INT;
         SELECT @ReservedAttractionSpots = ISNULL(SUM(AttendeesNumber), 0) 
         FROM ReservationDetails 
-        WHERE AttractionID = @AttractionID;
+        WHERE AttractionID = @AttractionID and ReservationID not in (select ReservationID from Reservations where IsActive=0);
 
         -- Sprawdzenie, czy liczba miejsc jest git
         IF (@AllSpots - @ReservedAttractionSpots) < @AttendeesNumber
-            THROW 50004, 'Not enough free spots for this attraction to book.', 1;
+            THROW 50007, 'Not enough free spots for this attraction to book.', 1;
 
         -- Pobranie ceny atrakcji
         DECLARE @AttractionPrice DECIMAL(19, 2);
@@ -797,7 +816,7 @@ END;
 
 ## 4. Procedura wyświetlająca płatności w podanym okresie czasu
 ```sql
-CREATE OR ALTER   PROCEDURE [dbo].[p_get_payments_in_date_range]
+CREATE OR ALTER PROCEDURE p_get_payments_in_date_range
     @startDate DATE,
     @endDate DATE
 AS
@@ -836,7 +855,7 @@ END;
 
 ## 5. Procedura dodająca gościa do atrakcji
 ```sql
-CREATE OR ALTER   PROCEDURE [dbo].[p_add_guest_attr]
+CREATE OR ALTER PROCEDURE p_add_guest_attr
     @ReservationID INT,
     @AttractionID INT,
     @GuestID INT
@@ -854,6 +873,20 @@ BEGIN
 
         IF NOT EXISTS (SELECT * FROM Guests WHERE GuestID = @GuestID)
             THROW 50003, 'No guest with this GuestID.', 1;
+        
+        -- sprawdzenie dodanie TRIPID
+        DECLARE @TripID INT;
+        select @TripID = TripID from Reservations where ReservationID=@ReservationID;
+        
+        -- sprawdzenie dodanie TRIPID
+        DECLARE @TripDate DATE;
+        select @TripDate = StartDate from Trips where TripID=@TripID;
+
+        IF DATEDIFF(DAY, getdate(), @TripDate) < 7
+            THROW 50004, 'Cannot add guest, it''s too late. :<', 1;
+
+        IF (select Isactive from Reservations where ReservationID=@ReservationID) = 0
+            THROW 50005, 'Reservation is not active.', 1;
 
         -- Pobranie liczby miejsc zarezerwowanych na atrakcję
         DECLARE @ReservedSpots INT;
@@ -869,7 +902,7 @@ BEGIN
 
         -- Sprawdzenie dostępnych miejsc na atrakcję
         IF @GuestCount >= @ReservedSpots
-            THROW 50004, 'No available spots for this attraction.', 1;
+            THROW 50006, 'No available spots for this attraction.', 1;
 
         -- Dodanie nowego gościa do rezerwacji atrakcji
         INSERT INTO GuestDetails (GuestID, ReservationID, AttractionID)
@@ -891,7 +924,7 @@ END;
 
 ## 6. Procedura dodająca gościa do rezerwacji
 ```sql
-create or ALTER   PROCEDURE [dbo].[p_add_guest]
+create or ALTER PROCEDURE p_add_guest
     @ReservationID INT,
     @FirstName VARCHAR(50),
     @LastName VARCHAR(50)
@@ -916,6 +949,20 @@ BEGIN
         IF @GuestCount >= @ReservedSpots
             THROW 50002, 'No available spots for this reservation.', 1;
 
+        -- sprawdzenie dodanie TRIPID
+        DECLARE @TripID INT;
+        select @TripID = TripID from Reservations where ReservationID=@ReservationID;
+        
+        -- sprawdzenie dodanie TRIPID
+        DECLARE @TripDate DATE;
+        select @TripDate = StartDate from Trips where TripID=@TripID;
+
+        IF DATEDIFF(DAY, getdate(), @TripDate) < 7
+            THROW 50003, 'Cannot add guest, it''s too late. :<', 1;
+
+        IF (select Isactive from Reservations where ReservationID=@ReservationID) = 0
+            THROW 50004, 'Reservation is not active.', 1;
+
         -- Dodanie nowego gościa
         INSERT INTO Guests (ReservationID, FirstName, LastName)
         VALUES (@ReservationID, @FirstName, @LastName);
@@ -936,7 +983,7 @@ END;
 
 ## 7. Procedura zmieniająca rezerwację
 ```sql
-create or ALTER   PROCEDURE [dbo].[p_alter_reservation]
+create or ALTER PROCEDURE p_alter_reservation
     @ReservationID INT,
     @CustomerID INT,
     @Spots INT
@@ -952,19 +999,29 @@ BEGIN
         DECLARE @TripSpots INT;
         SELECT @TripSpots = Spots FROM Trips WHERE TripID = @TripID;
         DECLARE @ReservedSpots INT;
-        SELECT @ReservedSpots = ISNULL(SUM(Spots), 0) FROM Reservations WHERE TripID = @TripID;
+        SELECT @ReservedSpots = ISNULL(SUM(Spots), 0) FROM Reservations WHERE TripID = @TripID and IsActive=1;
         DECLARE @ThisReservedSpots INT;
         SELECT @ThisReservedSpots = Spots FROM Reservations WHERE ReservationID = @ReservationID;
         IF @Spots > (@TripSpots - @ReservedSpots + @ThisReservedSpots)
             THROW 50002, 'Not enough available spots for this trip.', 1;
 
+        DECLARE @GuestsAdded INT;
+        SELECT @GuestsAdded = Count(GuestID) FROM Guests WHERE ReservationID = @ReservationID;
+
+        IF @Spots > @GuestsAdded
+            THROW 50003, 'There is more added guests than your desired number.', 1;
+
         declare @today date;
         select @today = getdate()
 
+        IF (select Isactive from Reservations where ReservationID=@ReservationID) = 0
+            THROW 50004, 'Reservation is not active.', 1;
+
         IF @today < (SELECT AvailableFrom FROM Trips WHERE TripID = @TripID)
-            THROW 50003, 'You cannot edit a reservation for this trip yet. :(', 1;
+            THROW 50005, 'You cannot edit a reservation for this trip yet. :(', 1;
+        
         IF DATEDIFF(DAY, @today, (SELECT StartDate FROM Trips WHERE TripID = @TripID)) < 7
-            THROW 50004, 'Time to edit reservations for this trip is over. :(', 1;
+            THROW 50006, 'Time to edit reservations for this trip is over. :(', 1;
 
         DECLARE @TripPrice DECIMAL(19, 2);
         SELECT @TripPrice = Price FROM Trips WHERE TripID = @TripID;
@@ -987,7 +1044,7 @@ END;
 
 ## 8. Procedura usuwająca gościa
 ```sql
-create or ALTER   PROCEDURE [dbo].[p_remove_guest]
+create or ALTER PROCEDURE p_remove_guest
     @GuestID INT
 AS
 BEGIN
@@ -997,6 +1054,23 @@ BEGIN
         -- Sprawdzenie czy GuestID, ReservationID i AttractionID istnieją
         IF NOT EXISTS (SELECT * FROM Guests WHERE GuestID = @GuestID)
             THROW 50001, 'No guest found with this GuestID.', 1;
+        
+        DECLARE @ReservationID INT;
+        select @ReservationID=ReservationID from Guests
+
+        -- sprawdzenie dodanie TRIPID
+        DECLARE @TripID INT;
+        select @TripID = TripID from Reservations where ReservationID=@ReservationID;
+        
+        -- sprawdzenie dodanie TRIPID
+        DECLARE @TripDate DATE;
+        select @TripDate = StartDate from Trips where TripID=@TripID;
+
+        IF DATEDIFF(DAY, getdate(), @TripDate) < 7
+            THROW 50002, 'Cannot remove guest, it''s too late. :<', 1;
+
+        IF (select Isactive from Reservations where ReservationID=@ReservationID) = 0
+            THROW 50003, 'Reservation is not active.', 1;
 
         -- Usunięcie gościa z tabeli GuestDetails
         DELETE FROM GuestDetails 
@@ -1021,7 +1095,7 @@ END;
 
 ## 9. Procedura usuwająca gościa z atrakcji
 ```sql
-create or ALTER   PROCEDURE [dbo].[p_remove_guest_attr]
+create or ALTER PROCEDURE p_remove_guest_attr
     @GuestID INT,
     @ReservationID INT,
     @AttractionID INT
@@ -1033,6 +1107,20 @@ BEGIN
         -- Sprawdzenie czy GuestID, ReservationID i AttractionID istnieją
         IF NOT EXISTS (SELECT * FROM GuestDetails WHERE GuestID = @GuestID AND ReservationID = @ReservationID AND AttractionID = @AttractionID)
             THROW 50001, 'No guest found with this GuestID, ReservationID, and AttractionID.', 1;
+
+        -- sprawdzenie dodanie TRIPID
+        DECLARE @TripID INT;
+        select @TripID = TripID from Reservations where ReservationID=@ReservationID;
+        
+        -- sprawdzenie dodanie TRIPID
+        DECLARE @TripDate DATE;
+        select @TripDate = StartDate from Trips where TripID=@TripID;
+
+        IF DATEDIFF(DAY, getdate(), @TripDate) < 7
+            THROW 50002, 'Cannot remove guest, it''s too late. :<', 1;
+
+        IF (select Isactive from Reservations where ReservationID=@ReservationID) = 0
+            THROW 50003, 'Reservation is not active.', 1;
 
         -- Usunięcie gościa z tabeli GuestDetails
         DELETE FROM GuestDetails 
@@ -1054,7 +1142,7 @@ END;
 
 ## 10. Procedura usuwająca rezerwację
 ```sql
-create or ALTER   PROCEDURE [dbo].[p_remove_reservation]
+create or ALTER PROCEDURE p_remove_reservation
     @ReservationID INT
 AS
 BEGIN
@@ -1090,11 +1178,75 @@ END;
 ## Przykład użycia
 ![pprzyklad10](przyklady/procedures/removereservation.png)
 
-# Do zrobienia
-- zaktualizować opis i kody tabel w readme
-- ~~dodać sprawdzenie limitu 7 dni w remove guest i remove attr guest~~
-- dodać agenta albo triggera żeby usuwał rezerwacje nieopłacone i bez/z niewystarczającą liczbą gości
-- dodać współpracę z listą gości do alter reservation (nie można zmniejszyć liczby miejsc, gdy jest więcej gości)
-- dodać tripid do widoku z płatnościami i spotcheck
-- ~~uwzględnić IsActive w procedurach~~
+## 11. Procedura usuwająca rezerwacje nieopłacone, bądź bez listy gości (powinna wykonywać się co kilka godzin z pomocą agenta)
+```sql
+CREATE or ALTER PROCEDURE auto_p_check_reservations
+AS
+BEGIN
+    BEGIN TRY
+        -- Rozpocznij transakcję
+        BEGIN TRANSACTION
 
+        -- Utwórz tymczasową tabelę do przechowywania rezerwacji, których wycieczki zaczynają się za mniej niż 7 dni
+        CREATE TABLE #UpcomingTrips (
+            ReservationID INT,
+            TripID INT,
+            StartDate DATE
+        );
+
+        -- Wstaw dane do tymczasowej tabeli
+        INSERT INTO #UpcomingTrips (ReservationID, TripID, StartDate)
+        SELECT r.ReservationID, r.TripID, t.StartDate
+        FROM Reservations r
+        JOIN Trips t ON r.TripID = t.TripID
+        WHERE DATEDIFF(DAY, GETDATE(), t.StartDate) < 7;
+
+        -- Sprawdź nieopłacone rezerwacje i ustaw IsActive na 0
+        UPDATE Reservations
+        SET IsActive = 0
+        WHERE ReservationID IN (
+            SELECT ReservationID
+            FROM dbo.PaymentsInfo
+            WHERE LeftToPay > 0
+              AND ReservationID IN (SELECT ReservationID FROM #UpcomingTrips)
+        );
+
+        -- Sprawdź liczbę gości vs liczbę miejsc i ustaw IsActive na 0
+        UPDATE Reservations
+        SET IsActive = 0
+        WHERE ReservationID IN (
+            SELECT r.ReservationID
+            FROM Reservations r
+            LEFT JOIN Guests g ON r.ReservationID = g.ReservationID
+            GROUP BY r.ReservationID,r.Spots
+            HAVING COUNT(g.GuestID) != r.Spots
+              AND r.ReservationID IN (SELECT ReservationID FROM #UpcomingTrips)
+        );
+
+        -- Sprawdź liczbę uczestników vs liczbę miejsc w atrakcjach i ustaw IsActive na 0
+        UPDATE Reservations
+        SET IsActive = 0
+        WHERE ReservationID IN (
+            SELECT rd.ReservationID
+            FROM ReservationDetails rd
+            left JOIN GuestDetails gd ON rd.ReservationID = gd.ReservationID AND rd.AttractionID = gd.AttractionID
+            GROUP BY rd.ReservationID, rd.AttractionID, rd.AttendeesNumber
+            HAVING COUNT(gd.GuestID) != rd.AttendeesNumber
+              AND rd.ReservationID IN (SELECT ReservationID FROM #UpcomingTrips)
+        );
+
+        -- Usuń tymczasową tabelę
+        DROP TABLE #UpcomingTrips;
+
+        -- Commit transakcji
+        COMMIT;
+    END TRY
+    BEGIN CATCH
+        IF XACT_STATE() <> 0
+        BEGIN
+            ROLLBACK TRANSACTION;
+        END;
+        THROW;
+    END CATCH;
+END;
+```
