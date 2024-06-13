@@ -20,7 +20,7 @@
       - [Guests](#guests)
       - [Trips](#trips)
       - [ReservationDetails](#reservationdetails)
-      - [Reservation](#reservation)
+      - [Reservations](#reservations)
 - [3. Widoki](#3-widoki)
     - [1. Widok wypisujący rezerwacje, ceny wycieczek, kwotę do zapłaty, zapłacone i do zapłaty](#1-widok-wypisujący-rezerwacje-ceny-wycieczek-kwotę-do-zapłaty-zapłacone-i-do-zapłaty)
     - [2. Widok zapełnionych miejsc w atrakcji w stosunku do miejsc wykupionych](#2-widok-zapełnionych-miejsc-w-atrakcji-w-stosunku-do-miejsc-wykupionych)
@@ -87,17 +87,17 @@ Tabela ta opisuje poszczególne atrakcje dla każdej wycieczki.
 | Name |  varchar(50) | Nazwa atrakcji |
 | Address | varchar(50) | Adres atrakcji (miejsce/region) |
 | Spots | int | Maks. liczba uczestnikow |
-| Price | int | Cena za pojedynczą atrakcję |
+| Price | decimal(19, 2) | Cena za pojedynczą atrakcję |
 
 ```sql
 -- Tabela: Attractions
 CREATE TABLE Attractions (
-    AttractionID int  NOT NULL,
+    AttractionID int IDENTITY(1,1) NOT NULL,
     TripID int  NOT NULL,
     Name varchar(50)  NOT NULL,
     Address varchar(50)  NOT NULL,
     Spots int  NOT NULL,
-    Price int  NOT NULL,
+    Price decimal(19, 2)  NOT NULL,
     CONSTRAINT Attractions_pk PRIMARY KEY  (AttractionID)
 );
 
@@ -158,7 +158,7 @@ Tabela ta zawiera podstawowe informacje o kliencie - jego id i kraj.
 ```sql
 -- Tabela: Customers
 CREATE TABLE Customers (
-    CustomerID int  NOT NULL,
+    CustomerID int IDENTITY(1,1) NOT NULL,
     CountryID varchar(3)  NOT NULL,
     CONSTRAINT CustomerID PRIMARY KEY  (CustomerID)
 );
@@ -194,11 +194,6 @@ ALTER TABLE GuestDetails ADD CONSTRAINT GuestsDetails_Guests
 ALTER TABLE GuestDetails ADD CONSTRAINT GuestDetails_ReservationDetails
     FOREIGN KEY (ReservationID,AttractionID)
     REFERENCES ReservationDetails (ReservationID,AttractionID)
-
--- Powiązanie: GuestsDetails_Attractions 
-ALTER TABLE GuestDetails ADD CONSTRAINT GuestsDetails_Attractions
-    FOREIGN KEY (AttractionID)
-    REFERENCES Attractions (AttractionID);
 ```
 
 - #### Guests
@@ -213,17 +208,17 @@ Tabela zawiera informacje o uczestnikach wycieczki.
 ```sql
 -- Tabela: Guests
 CREATE TABLE Guests (
-    GuestID int  NOT NULL,
+    GuestID int IDENTITY(1,1) NOT NULL,
     ReservationID int  NOT NULL,
     FirstName varchar(50)  NOT NULL,
     LastName varchar(50)  NOT NULL,
     CONSTRAINT Guests_pk PRIMARY KEY  (GuestID)
 );
 
--- Powiązanie: Reservation_Guests
-ALTER TABLE Guests ADD CONSTRAINT Reservation_Guests
+-- Powiązanie: Reservations_Guests
+ALTER TABLE Guests ADD CONSTRAINT Reservations_Guests
     FOREIGN KEY (ReservationID)
-    REFERENCES Reservation (ReservationID);
+    REFERENCES Reservations (ReservationID);
 ```
 
 - #### Trips
@@ -237,22 +232,22 @@ Tabela opisująca wycieczki znajdujące się w stałej ofercie.
 | StartDate | date | Data rozpoczęcia wycieczki |
 | EndDate | date | Data zakończenia wycieczki |
 | Price | int | Cena całej wycieczki (nie wliczając atrakcji) |
-| AvailableFrom | date | Data od której wycieczxka jest dostępna do zakupu |
+| AvailableFrom | date | Data od której wycieczka jest dostępna do zakupu |
 
 ```sql
 -- Tabela: Trips
 CREATE TABLE Trips (
-    TripID int  NOT NULL,
+    TripID int IDENTITY(1,1) NOT NULL,
     CountryID varchar(3)  NOT NULL,
     Spots int  NOT NULL,
     StartDate date  NOT NULL,
     EndDate date  NOT NULL,
-    Price int  NOT NULL,
+    Price decimal(19, 2)  NOT NULL,
     AvailableFrom date  NOT NULL,
     CONSTRAINT TripID PRIMARY KEY  (TripID)
 );
 
--- Powiązanie: Trips_Countries (table: Trips)
+-- Powiązanie: Trips_Countries
 ALTER TABLE Trips ADD CONSTRAINT Trips_Countries
     FOREIGN KEY (CountryID)
     REFERENCES Countries (CountryID);
@@ -266,6 +261,7 @@ Tabela zawiera informacje wiążace rezerwacje z wykupionymi atrakcjami.
 | AttractionID | int | ID Atrakcji |
 | ReservationID  | int | ID Rezerwacji |
 | AttendeesNumber | int | Ilość gości przypisanych do danej atrakcji |
+| Price  | decimal(19,2) | Cena atrakcji za jedną osobę w momencie zakupu |
 
 ```sql
 -- Tabela: ReservationDetails
@@ -273,6 +269,7 @@ CREATE TABLE ReservationDetails (
     AttractionID int  NOT NULL,
     ReservationID int  NOT NULL,
     AttendeesNumber int  NOT NULL,
+    Price decimal(19,2) NOT NULL,
     CONSTRAINT ReservationDetails_pk PRIMARY KEY  (ReservationID,AttractionID)
 );
 
@@ -281,13 +278,13 @@ ALTER TABLE ReservationDetails ADD CONSTRAINT ReservationDetails_Attractions
     FOREIGN KEY (AttractionID)
     REFERENCES Attractions (AttractionID);
 
--- Powiązanie: ReservationDetails_Reservation 
-ALTER TABLE ReservationDetails ADD CONSTRAINT ReservationDetails_Reservation
+-- Powiązanie: ReservationDetails_Reservations 
+ALTER TABLE ReservationDetails ADD CONSTRAINT ReservationDetails_Reservations
     FOREIGN KEY (ReservationID)
-    REFERENCES Reservation (ReservationID);
+    REFERENCES Reservations (ReservationID);
 ```
 
-- #### Reservation
+- #### Reservations
 Tabela zawiera informacje dotyczące poszczególnych rezerwacji.
 
 | Nazwa atrybutu | Typ | Opis/Uwagi |
@@ -297,32 +294,41 @@ Tabela zawiera informacje dotyczące poszczególnych rezerwacji.
 | TripID | int  | ID Wycieczki |
 | Spots | int | Ilość zarezerwowanych miejsc |
 | ReservationDate | date | Data zakupu rezerwacji |
-| ToPay | int | Cena rezerwacji |
+| Price | decimal(19,2) | Cena rezerwacji pobierana w momencie zakupu |
+| IsActive | bit | Status rezerwacji (aktywna/anulowana) |
 
 ```sql
--- Tabela: Reservation
-CREATE TABLE Reservation (
+-- Tabela: Reservations
+CREATE TABLE Reservations (
     ReservationID int  NOT NULL,
     CustomerID int  NOT NULL,
     TripID int  NOT NULL,
     Spots int  NOT NULL,
     ReservationDate date  NOT NULL,
-    ToPay int  NOT NULL,
-    CONSTRAINT Reservation_pk PRIMARY KEY  (ReservationID)
+    Price decimal(19,2)  NOT NULL,
+    IsActive bit NOT NULL,
+    CONSTRAINT Reservations_pk PRIMARY KEY  (ReservationID)
 );
 
+-- Wartości domyślne:
+    ALTER TABLE Reservations ADD  CONSTRAINT DEFAULT_Reservations_ReservationDate  DEFAULT (getdate()) FOR ReservationDate
+    
+    ALTER TABLE Reservations ADD  CONSTRAINT DEFAULT_Reservations_IsActive  DEFAULT ((1)) FOR IsActive
 
--- Powiązanie: Reservation_Customers (table: Reservation)
-ALTER TABLE Reservation ADD CONSTRAINT Reservation_Customers
+
+-- Powiązanie: Reservations_Customers 
+ALTER TABLE Reservations ADD CONSTRAINT Reservations_Customers
     FOREIGN KEY (CustomerID)
     REFERENCES Customers (CustomerID);
 
 
--- Powiązanie: Reservation_Trips (table: Reservation)
-ALTER TABLE Reservation ADD CONSTRAINT Reservation_Trips
+-- Powiązanie: Reservations_Trips 
+ALTER TABLE Reservations ADD CONSTRAINT Reservations_Trips
     FOREIGN KEY (TripID)
     REFERENCES Trips (TripID);
 ```
+
+
 
 - #### PrivateClients
 Tabela zawiera informacje o klientach, którzy są osobami prywatnymi.
@@ -360,7 +366,7 @@ Tabela zawiera informacje dotyczące płatności.
 | -------------- | --- | ---------- |
 | PaymentID | int  | ID Płatności |
 | ReservationID | int | ID Rezerwacji |
-| Amount | int | Wartość płatności |
+| Amount | decimal(19,2) | Wartość płatności |
 | PaymentDate | date | Data zaksięgowania płatności |
 | PaymentMethod | varchar(50) | Metoda płatności |
 
@@ -369,17 +375,19 @@ Tabela zawiera informacje dotyczące płatności.
 CREATE TABLE Payments (
     PaymentID int  NOT NULL,
     ReservationID int  NOT NULL,
-    Amount int  NOT NULL,
+    Amount decimal(19,2)  NOT NULL,
     PaymentDate date  NOT NULL,
     PaymentMethod varchar(50)  NOT NULL,
     CONSTRAINT Payments_pk PRIMARY KEY  (PaymentID)
 );
 
+-- Wartości domyślne:
+    ALTER TABLE Payments ADD  CONSTRAINT DEFAULT_Payments_PaymentDate  DEFAULT (getdate()) FOR PaymentDate
 
--- Powiązanie: Payments_Reservation 
-ALTER TABLE Payments ADD CONSTRAINT Payments_Reservation
+-- Powiązanie: Payments_Reservations
+ALTER TABLE Payments ADD CONSTRAINT Payments_Reservations
     FOREIGN KEY (ReservationID)
-    REFERENCES Reservation (ReservationID);
+    REFERENCES Reservations (ReservationID);
 ```
 # 3. Widoki
 
@@ -432,7 +440,7 @@ SELECT
 FROM
     Guests g
 JOIN
-    Reservation r ON g.ReservationID = r.ReservationID
+    Reservations r ON g.ReservationID = r.ReservationID
 JOIN
     Trips t ON r.TripID = t.TripID
 LEFT JOIN
